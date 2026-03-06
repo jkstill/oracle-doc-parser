@@ -1,0 +1,48 @@
+---
+id: 19c__ALL_IND_STATISTICS
+name: ALL_IND_STATISTICS
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: performance
+tags: [all]
+source_file: ALL_IND_STATISTICS.html
+---
+
+# ALL_IND_STATISTICS
+
+ALL_IND_STATISTICS displays optimizer statistics for the indexes on the tables accessible to the current user collected using the DBMS_STATS package.
+
+## Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| OWNER | VARCHAR2(128) | Owner of the index |
+| INDEX_NAME | VARCHAR2(128) | Name of the index |
+| TABLE_OWNER | VARCHAR2(128) | Owner of the indexed object |
+| TABLE_NAME | VARCHAR2(128) | Name of the indexed object |
+| PARTITION_NAME | VARCHAR2(128) | Name of the partition |
+| PARTITION_POSITION | NUMBER | Position of the partition within the index |
+| SUBPARTITION_NAME | VARCHAR2(128) | Name of the subpartition |
+| SUBPARTITION_POSITION | NUMBER | Position of the subpartition within the partition |
+| OBJECT_TYPE | VARCHAR2(12) | Type of the object: INDEX PARTITION SUBPARTITION |
+| BLEVEL | NUMBER | B-Tree level |
+| LEAF_BLOCKS | NUMBER | Number of leaf blocks in the index |
+| DISTINCT_KEYS | NUMBER | Number of distinct keys in the index |
+| AVG_LEAF_BLOCKS_PER_KEY | NUMBER | Average number of leaf blocks per key |
+| AVG_DATA_BLOCKS_PER_KEY | NUMBER | Average number of data blocks per key |
+| CLUSTERING_FACTOR | NUMBER | Indicates the amount of order of the rows in the table based on the values of the index. If the value is near the number of blocks, then the table is very well ordered. In this case, the index entries in a single leaf block tend to point to rows in the same data blocks. If the value is near the number of rows, then the table is very randomly ordered. In this case, it is unlikely that index entries in the same leaf block point to rows in the same data blocks. |
+| NUM_ROWS | NUMBER | Number of rows in the index |
+| AVG_CACHED_BLOCKS | NUMBER | Average number of blocks in the buffer cache |
+| AVG_CACHE_HIT_RATIO | NUMBER | Average cache hit ratio for the object |
+| SAMPLE_SIZE | NUMBER | Sample size used in analyzing the index |
+| LAST_ANALYZED | DATE | Date of the most recent time the index was analyzed |
+| GLOBAL_STATS | VARCHAR2(3) | GLOBAL_STATS will be YES if statistics are gathered or incrementally maintained, otherwise it will be NO |
+| USER_STATS | VARCHAR2(3) | Indicates whether statistics were entered directly by the user ( YES ) or not ( NO ) |
+| STATTYPE_LOCKED | VARCHAR2(5) | Type of statistics lock |
+| STALE_STATS | VARCHAR2(3) | Whether statistics for the object are stale or not |
+| SCOPE | VARCHAR2(7) | The value is SHARED for statistics gathered on any table other than global temporary tables. For a global tempoary table, the possible values are: SESSION - Indicates that the statistics are session-specific SHARED - Indicates that the statistics are shared across all sessions See Oracle Database PL/SQL Packages and Types Reference for information about using the GLOBAL_TEMP_TABLE_STATS preference of the DBMS_STATS package to control whether to gather session or shared statistics for global temporary tables. |
+
+## Usage Notes
+
+Previous Next JavaScript must be enabled to correctly display this content Related Views DBA_IND_STATISTICS displays optimizer statistics for all indexes in the database. USER_IND_STATISTICS displays optimizer statistics for the indexes on the tables owned by the current user. This view does not display the OWNER column. See Also: " DBA_IND_STATISTICS " " USER_IND_STATISTICS " Oracle Database PL/SQL Packages and Types Reference for more information about the DBMS_STATS package See Also: " DBA_IND_STATISTICS " " USER_IND_STATISTICS " Oracle Database PL/SQL Packages and Types Reference for more information about the DBMS_STATS package

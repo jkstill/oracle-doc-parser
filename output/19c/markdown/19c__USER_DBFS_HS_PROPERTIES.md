@@ -1,0 +1,18 @@
+---
+id: 19c__USER_DBFS_HS_PROPERTIES
+name: USER_DBFS_HS_PROPERTIES
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: security
+tags: [user]
+source_file: USER_DBFS_HS_PROPERTIES.html
+---
+
+# USER_DBFS_HS_PROPERTIES
+
+USER_DBFS_HS_PROPERTIES shows modifiable properties of all Database File System (DBFS) hierarchical stores owned by current user. Its columns (except for STOREOWNER ) are the same as those in DBA_DBFS_HS_PROPERTIES .
+
+## Usage Notes
+
+See Also: " DBA_DBFS_HS_PROPERTIES " See Also: " DBA_DBFS_HS_PROPERTIES "

@@ -1,0 +1,28 @@
+---
+id: 19c__ALL_TAB_COMMENTS
+name: ALL_TAB_COMMENTS
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: general
+tags: [all]
+source_file: ALL_TAB_COMMENTS.html
+---
+
+# ALL_TAB_COMMENTS
+
+ALL_TAB_COMMENTS displays comments on the tables and views accessible to the current user.
+
+## Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| OWNER | VARCHAR2(128) | Owner of the object |
+| TABLE_NAME | VARCHAR2(128) | Name of the object |
+| TABLE_TYPE | VARCHAR2(11) | Type of the object |
+| COMMENTS | VARCHAR2(4000) | Comment on the object |
+| ORIGIN_CON_ID | NUMBER | The ID of the container where the data originates. Possible values include: 0 : This value is used for rows in non-CDBs. This value is not used for CDBs n : This value is used for rows containing data that originate in the container with the ID n ( n =1 if the data originates in root) |
+
+## Usage Notes
+
+Related Views DBA_TAB_COMMENTS displays comments on all tables and views in the database. USER_TAB_COMMENTS displays comments on the tables and views owned by the current user. This view does not display the OWNER column. See Also: " DBA_TAB_COMMENTS " " USER_TAB_COMMENTS " See Also: " DBA_TAB_COMMENTS " " USER_TAB_COMMENTS "

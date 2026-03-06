@@ -1,0 +1,25 @@
+---
+id: 19c__DBMS_TSDP_PROTECT
+name: DBMS_TSDP_PROTECT
+object_type: plsql_subprogram
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_TSDP_PROTECT
+tags: [dbms_tsdp_protect]
+source_file: DBMS_TSDP_PROTECT.html
+---
+
+# DBMS_TSDP_PROTECT
+
+The DBMS_TSDP_PROTECT package defines two TABLE types.
+
+## Syntax
+
+```sql
+TYPE FEATURE_OPTIONS IS TABLE OF VARCHAR2(TSDP_PARAM_MAX) 
+INDEX BY VARCHAR2(M_IDEN);
+```
+
+## Usage Notes
+
+Table Types FEATURE_OPTIONS Table Type POLICY_CONDITIONS Table Type Syntax TYPE FEATURE_OPTIONS IS TABLE OF VARCHAR2(TSDP_PARAM_MAX) INDEX BY VARCHAR2(M_IDEN); Syntax TYPE POLICY_CONDITIONS IS TABLE OF VARCHAR2(TSDP_PARAM_MAX) INDEX BY PLS_INTEGER;

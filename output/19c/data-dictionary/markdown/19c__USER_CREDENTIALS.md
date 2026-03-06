@@ -1,0 +1,18 @@
+---
+id: 19c__USER_CREDENTIALS
+name: USER_CREDENTIALS
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: security
+tags: [user]
+source_file: USER_CREDENTIALS.html
+---
+
+# USER_CREDENTIALS
+
+USER_CREDENTIALS displays credentials owned by the current user. Its columns (except for OWNER ) are the same as those in ALL_CREDENTIALS .
+
+## Usage Notes
+
+Previous Next JavaScript must be enabled to correctly display this content See Also: " ALL_CREDENTIALS " See Also: " ALL_CREDENTIALS "

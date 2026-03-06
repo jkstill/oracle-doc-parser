@@ -1,0 +1,43 @@
+---
+id: 19c__DBMS_DATA_MINING_TRANSFORM.INSERT_BIN_NUM_EQWIDTH
+name: DBMS_DATA_MINING_TRANSFORM.INSERT_BIN_NUM_EQWIDTH
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_DATA_MINING_TRANSFORM
+tags: [dbms_data_mining_transform]
+source_file: DBMS_DATA_MINING_TRANSFORM.html
+---
+
+# DBMS_DATA_MINING_TRANSFORM.INSERT_BIN_NUM_EQWIDTH
+
+This procedure performs numerical binning and inserts the transformation definitions in a transformation definition table. The procedure identifies the minimum and maximum values and computes the bin boundaries at equal intervals.
+
+## Syntax
+
+```sql
+DBMS_DATA_MINING_TRANSFORM.INSERT_BIN_NUM_EQWIDTH (
+     bin_table_name        IN VARCHAR2,
+     data_table_name       IN VARCHAR2,
+     bin_num               IN PLS_INTEGER DEFAULT 10,
+     exclude_list          IN COLUMN_LIST DEFAULT NULL,
+     round_num             IN PLS_INTEGER DEFAULT 6,
+     bin_schema_name       IN VARCHAR2 DEFAULT NULL,
+     data_schema_name      IN VARCHAR2 DEFAULT NULL);
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| bin_table_name | VARCHAR2 | IN | Name of the transformation definition table for numerical binning. You can use the CREATE_BIN_NUM Procedure to create the definition table. The following columns are required: COL VARCHAR2(30) VAL NUMBER BIN VARCHAR2(4000) CREATE_BIN_NUM creates an additional column, ATT , which may be used for specifying nested attributes. This column is not used by INSERT_BIN_NUM_EQWIDTH . |
+| data_table_name | VARCHAR2 | IN | Name of the table containing the data to be transformed |
+| bin_num | PLS_INTEGER | IN | Number of bins. No binning occurs if bin_num is 0 or NULL . The default number of bins is 10. |
+| exclude_list | COLUMN_LIST | IN | List of numerical columns to be excluded from the binning process. If you do not specify exclude_list , all numerical columns in the data source are binned. The format of exclude_list is: dbms_data_mining_transform.COLUMN_LIST('col 1 ','col 2 ', ...'col n ') |
+| round_num | PLS_INTEGER | IN | Specifies how to round the number in the VAL column of the transformation definition table. When round_num is positive, it specifies the most significant digits to retain. When round_num is negative, it specifies the least significant digits to remove. In both cases, the result is rounded to the specified number of digits. See the Usage Notes for an example. The default value of round_num is 6. |
+| bin_schema_name | VARCHAR2 | IN | Schema of bin_table_name . If no schema is specified, the current schema is used. |
+| data_schema_name | VARCHAR2 | IN | Schema of data_table_name . If no schema is specified, the current schema is used. |
+
+## Usage Notes
+
+INSERT_BIN_NUM_EQWIDTH computes a specified number of bins ( n ) and assigns (max-min)/n values to each bin. The number of bins is the same for each column. If you want to use equi-width binning, but you want the number of bins to be calculated on a per-column basis, use the INSERT_AUTOBIN_NUM_EQWIDTH Procedure . INSERT_BIN_NUM_EQWIDTH bins all the NUMBER and FLOAT columns in the data source unless you specify a list of columns to ignore. Syntax DBMS_DATA_MINING_TRANSFORM.INSERT_BIN_NUM_EQWIDTH ( bin_table_name IN VARCHAR2, data_table_name IN VARCHAR2, bin_num IN PLS_INTEGER DEFAULT 10, exclude_list IN COLUMN_LIST DEFAULT NULL, round_num IN PLS_INTEGER DEFAULT 6, bin_schema_name IN VARCHAR2 DEFAULT NULL, data_schema_name IN VARCHAR2 DEFAULT NULL); Parameters Table 48-22 INSERT_BIN_NUM_EQWIDTH Procedure Parameters Parameter Description bin_table_name Name of the transformation definition table for numerical binning. You can use the CREATE_BIN_NUM Procedure to create the definition table. The following columns are required: COL VARCHAR2(30) VAL NUMBER BIN VARCHAR2(4000) CREATE_BIN_NUM creates an additional column, ATT , which may be used for specifying nested attributes. This column is not used by INSERT_BIN_NUM_EQWIDTH . data_table_name Name of the table containing the data to be transformed bin_num Number of bins. No binning occurs if bin_num is 0 or NULL . The default number of bins is 10. exclude_list List of numerical columns to be excluded from the binning process. If you do not specify exclude_list , all numerical columns in the data source are binned. The format of exclude_list is: dbms_data_mining_transform.COLUMN_LIST('col 1 ','col 2 ', ...'col n ') round_num Specifies how to round the number in the VAL column of the transformation definition table. When round_num is positive, it specifies the most significant digits to retain. When round_num is negative, it specifies the least significant digits to remove. In both cases, the result is rounded to the specified number of digits. See the Usage Notes for an example. The default value of round_num is 6. bin_schema_name Schema of bin_table_name . If no schema is specified, the current schema is used. data_schema_name Schema of data_table_name . If no schema is specified, the current schema is used. Usage Notes See Oracle Data Mining User's Guide for details about numerical data. The round_num parameter controls the rounding of column values in the transformation definition table, as follows: For a value of 308.162: when round_num = 1 result is 300 when round_num = 2 result is 310 when round_num = 3 result is 308 when round_num = 0 result is 308.162 when round_num = -1 result is 308.16 when round_num = -2 result is 308.2 INSERT_BIN_NUM_EQWIDTH ignores columns with all NULL values or only one unique value. Examples In this example, INSERT_BIN_NUM_EQWIDTH computes the bin boundaries for the affinity_card column in mining_data_build and inserts the transformations in a transformation definition table. The STACK_BIN_NUM Procedure creates a transformation list from the contents of the definition table. The CREATE_MODEL Procedure embeds the transformation list in a new model called glm_model . The transformation and reverse transformation expressions embedded in glm_model are returned by the GET_MODEL_TRANSFORMATIONS Function . CREATE OR REPLACE VIEW mining_data AS SELECT cust_id, cust_income_level, cust_gender, affinity_card FROM mining_data_build; DESCRIBE mining_data Name Null? Type ------------------------- -------- ----------------- CUST_ID NOT NULL NUMBER CUST_INCOME_LEVEL VARCHAR2(30) CUST_GENDER VARCHAR2(1) AFFINITY_CARD NUMBER(10) BEGIN dbms_data_mining_transform.CREATE_BIN_NUM( bin_table_name => 'bin_tbl'); dbms_data_mining_transform.INSERT_BIN_NUM_EQWIDTH ( bin_table_name => 'bin_tbl', data_table_name => 'mining_data', bin_num => 4, exclude_list => dbms_data_mining_transform.COLUMN_LIST('cust_id')); END; / set numwidth 10 column val off column col format a20 column bin format a10 SELECT col, val, bin FROM bin_tbl ORDER BY val ASC; COL VAL BIN -------------------- ---------- ---------- AFFINITY_CARD 0 AFFINITY_CARD .25 1 AFFINITY_CARD .5 2 AFFINITY_CARD .75 3 AFFINITY_CARD 1 4 CREATE TABLE glmsettings( setting_name VARCHAR2(30), setting_value VARCHAR2(30)); BEGIN INSERT INTO glmsettings (setting_name, setting_value) VALUES (dbms_data_mining.algo_name, dbms_data_mining.algo_generalized_linear_model); COMMIT; END; / DECLARE xforms dbms_data_mining_transform.TRANSFORM_LIST; BEGIN dbms_data_mining_transform.STACK_BIN_NUM ( bin_table_name => 'bin_tbl', xform_list => xforms, literal_flag => TRUE); dbms_data_mining.CREATE_MODEL( model_name => 'glm_model', mining_function => dbms_data_mining.regression, data_table_name => 'mining_data', case_id_column_name => 'cust_id', target_column_name => 'affinity_card', settings_table_name => 'glmsettings', data_schema_name => null, settings_schema_name => null, xform_list => xforms); END; / SELECT attribute_name FROM TABLE(dbms_data_mining.GET_MODEL_TRANSFORMATIONS('glm_model')); ATTRIBUTE_NAME ------------------------ AFFINITY_CARD SELECT expression FROM TABLE(dbms_data_mining.GET_MODEL_TRANSFORMATIONS('glm_model')); EXPRESSION -------------------------------------------------------------------------------- CASE WHEN "AFFINITY_CARD"<0 THEN NULL WHEN "AFFINITY_CARD"<=.25 THEN 1 WHEN "AFFINITY_CARD"<=.5 THEN 2 WHEN "AFFINITY_CARD"<=.75 THEN 3 WHEN "AFFINITY_CARD"<=1 THEN 4 END SELECT reverse_expression FROM TABLE(dbms_data_mining.GET_MODEL_TRANSFORMATIONS('glm_model')); REVERSE_EXPRESSION -------------------------------------------------------------------------------- DECODE("AFFINITY_CARD",4,'(.75; 1]',1,'[0; .25]',2,'(.25; .5]',3,'(.5; .75]', NULL,'( ; 0), (1; ), NULL')

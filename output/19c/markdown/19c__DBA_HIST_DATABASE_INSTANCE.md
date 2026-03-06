@@ -1,0 +1,40 @@
+---
+id: 19c__DBA_HIST_DATABASE_INSTANCE
+name: DBA_HIST_DATABASE_INSTANCE
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: general
+tags: [dba]
+source_file: DBA_HIST_DATABASE_INSTANCE.html
+---
+
+# DBA_HIST_DATABASE_INSTANCE
+
+DBA_HIST_DATABASE_INSTANCE displays the databases and instances in the Workload Repository.
+
+## Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| DBID | NUMBER | Database ID |
+| INSTANCE_NUMBER | NUMBER | Instance number |
+| STARTUP_TIME | TIMESTAMP(3) | Startup time of the instance |
+| PARALLEL | VARCHAR2(3) | Indicates whether the instance is running in an Oracle Real Application Clusters (Oracle RAC) environment ( YES ) or not ( NO ) |
+| VERSION | VARCHAR2(17) | Database version |
+| DB_NAME | VARCHAR2(9) | Name of the database |
+| INSTANCE_NAME | VARCHAR2(16) | Name of the instance |
+| HOST_NAME | VARCHAR2(64) | Name of the host |
+| LAST_ASH_SAMPLE_ID | NUMBER | Last sample ID for the active session history |
+| PLATFORM_NAME | VARCHAR2(101) | Platform on which the instance is running |
+| CDB | VARCHAR2(3) | Possible values are: YES if the database is a CDB NO if the database is not a CDB |
+| EDITION | VARCHAR2(7) | The edition of the database. Possible values include: CORE EE : CORE Enterprise Edition EE : Enterprise Edition PO : Personal Edition XE : Express Edition |
+| DB_UNIQUE_NAME | VARCHAR2(30) | Unique database name |
+| DATABASE_ROLE | VARCHAR2(16) | Current role of the database: SNAPSHOT STANDBY LOGICAL STANDBY PHYSICAL STANDBY PRIMARY FAR SYNC |
+| CDB_ROOT_DBID | NUMBER | The database ID of the CDB root for the sampled session |
+| CON_ID | NUMBER | The ID of the container to which the data pertains. Possible values include: 0 : This value is used for rows containing data that pertain to the entire CDB. This value is also used for rows in non-CDBs. 1 : This value is used for rows containing data that pertain to only the root n : Where n is the applicable container ID for the rows containing data |
+| STARTUP_TIME_TZ | TIMESTAMP(3) WITH TIME ZONE | Startup time of the instance |
+
+## Usage Notes
+
+See Also: " DB_UNIQUE_NAME " See Also: " DB_UNIQUE_NAME "

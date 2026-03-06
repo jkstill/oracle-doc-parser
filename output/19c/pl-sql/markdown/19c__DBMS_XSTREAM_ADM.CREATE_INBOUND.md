@@ -1,0 +1,37 @@
+---
+id: 19c__DBMS_XSTREAM_ADM.CREATE_INBOUND
+name: DBMS_XSTREAM_ADM.CREATE_INBOUND
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_XSTREAM_ADM
+tags: [dbms_xstream_adm]
+source_file: DBMS_XSTREAM_ADM.html
+---
+
+# DBMS_XSTREAM_ADM.CREATE_INBOUND
+
+This procedure creates an XStream inbound server and its queue.
+
+## Syntax
+
+```sql
+DBMS_XSTREAM_ADM.CREATE_INBOUND(
+   server_name IN VARCHAR2,
+   queue_name  IN VARCHAR2,
+   apply_user  IN VARCHAR2  DEFAULT NULL,  
+   comment     IN VARCHAR2  DEFAULT NULL);
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| server_name | VARCHAR2 | IN | The name of the inbound server being created. A NULL specification is not allowed. Do not specify an owner. The specified name must not match the name of an existing outbound server, inbound server, apply process, or messaging client. Note: The server_name setting cannot exceed 30 bytes, and it cannot be altered after the inbound server is created. |
+| queue_name | VARCHAR2 | IN | The name of the local queue used by the inbound server, specified as [ schema_name .] queue_name . If the specified queue exists, then it is used. If the specified queue does not exist, then the procedure creates it. For example, to specify a queue named xstream_queue in the xstrmadmin schema, enter xstrmadmin.xstream_queue for this parameter. If the schema is not specified, then the current user is the default. Note: An inbound server's queue is used only to store error transactions. |
+| apply_user | VARCHAR2 | IN | The apply user. If NULL , then the current user is the default. The client application must attach to the inbound server as the apply user. The apply user is the user in whose security domain an inbound server evaluates whether LCRs satisfy its rule sets, applies DML and DDL changes directly to database objects, runs custom rule-based transformations configured for inbound server rules, and runs apply handlers configured for the inbound server. This user must have the necessary privileges to perform these actions. This procedure grants the apply user dequeue privileges on the queue used by the inbound server and configures the user as a secure queue user. In addition to the privileges granted by this procedure, you must grant the following privileges to the apply user: The necessary privileges to perform DML and DDL changes on the apply objects EXECUTE privilege on the rule sets used by the inbound server EXECUTE privilege on all rule-based transformation functions used in the rule set EXECUTE privilege on all apply handler procedures You can grant these privileges directly to the apply user, or you can grant them through roles. In addition, the apply user must be granted EXECUTE privilege on all packages, including Oracle supplied packages, that are invoked in subprograms run by the inbound server. These privileges must be granted directly to the apply user. They cannot be granted through roles. Note: If the apply user for an inbound server is dropped using DROP USER . . . CASCADE , then the inbound server is also dropped automatically. |
+| comment | VARCHAR2 | IN | An optional comment associated with the inbound server. |
+
+## Usage Notes
+
+Note: A client application can create multiple sessions. Each session can attach to only one inbound server, and each inbound server can serve only one session at a time. However, different client application sessions can connect to different inbound servers. See Oracle Call Interface Programmer's Guide and Oracle Database XStream Java API Reference for information about attaching to an inbound server. Note: A client application can create multiple sessions. Each session can attach to only one inbound server, and each inbound server can serve only one session at a time. However, different client application sessions can connect to different inbound servers. See Oracle Call Interface Programmer's Guide and Oracle Database XStream Java API Reference for information about attaching to an inbound server. Syntax DBMS_XSTREAM_ADM.CREATE_INBOUND( server_name IN VARCHAR2, queue_name IN VARCHAR2, apply_user IN VARCHAR2 DEFAULT NULL, comment IN VARCHAR2 DEFAULT NULL); Parameters Table 217-15 CREATE_INBOUND Procedure Parameters Parameter Description server_name The name of the inbound server being created. A NULL specification is not allowed. Do not specify an owner. The specified name must not match the name of an existing outbound server, inbound server, apply process, or messaging client. Note: The server_name setting cannot exceed 30 bytes, and it cannot be altered after the inbound server is created. queue_name The name of the local queue used by the inbound server, specified as [ schema_name .] queue_name . If the specified queue exists, then it is used. If the specified queue does not exist, then the procedure creates it. For example, to specify a queue named xstream_queue in the xstrmadmin schema, enter xstrmadmin.xstream_queue for this parameter. If the schema is not specified, then the current user is the default. Note: An inbound server's queue is used only to store error transactions. apply_user The apply user. If NULL , then the current user is the default. The client application must attach to the inbound server as the apply user. The apply user is the user in whose security domain an inbound server evaluates whether LCRs satisfy its rule sets, applies DML and DDL changes directly to database objects, runs custom rule-based transformations configured for inbound server rules, and runs apply handlers configured for the inbound server. This user must have the necessary privileges to perform these actions. This procedure grants the apply user dequeue privileges on the queue used by the inbound server and configures the user as a secure queue user. In addition to the privileges granted by this procedure, you must grant the following privileges to the apply user: The necessary privileges to perform DML and DDL changes on the apply objects EXECUTE privilege on the rule sets used by the inbound server EXECUTE privilege on all rule-based transformation functions used in the rule set EXECUTE privilege on all apply handler procedures You can grant these privileges directly to the apply user, or you can grant them through roles. In addition, the apply user must be granted EXECUTE privilege on all packages, including Oracle supplied packages, that are invoked in subprograms run by the inbound server. These privileges must be granted directly to the apply user. They cannot be granted through roles. Note: If the apply user for an inbound server is dropped using DROP USER . . . CASCADE , then the inbound server is also dropped automatically. comment An optional comment associated with the inbound server. Usage Notes By default, an inbound server does not use rules or rule sets. Therefore, an inbound server applies all of the LCRs sent to it by an XStream client application. However, to filter the LCRs sent to an inbound server, you can add rules and rule sets to an inbound server using the DBMS_XSTREAM_ADM and DBMS_RULE_ADM packages. In a CDB, you can execute the CREATE_INBOUND procedure from either the root or a PDB. The inbound server is restricted to receiving LCRs from one source database and only applying the changes to its local container. If the inbound server is at the root level, then the apply user must be a common user.

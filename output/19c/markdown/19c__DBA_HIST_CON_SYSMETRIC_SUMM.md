@@ -1,0 +1,41 @@
+---
+id: 19c__DBA_HIST_CON_SYSMETRIC_SUMM
+name: DBA_HIST_CON_SYSMETRIC_SUMM
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: internal
+tags: [dba]
+source_file: DBA_HIST_CON_SYSMETRIC_SUMM.html
+---
+
+# DBA_HIST_CON_SYSMETRIC_SUMM
+
+DBA_HIST_CON_SYSMETRIC_SUMM displays a history of statistical summary of all metric values in the system metrics long duration (60–second) group. This view contains snapshots of V$CON_SYSMETRIC_SUMMARY .
+
+## Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| SNAP_ID | NUMBER | Unique snapshot ID |
+| DBID | NUMBER | Database ID for the snapshot |
+| INSTANCE_NUMBER | NUMBER | Instance number for the snapshot |
+| BEGIN_TIME | DATE | Begin time of the interval |
+| END_TIME | DATE | End time of the interval |
+| INTSIZE | NUMBER | Interval size (in hundredths of a second) |
+| GROUP_ID | NUMBER | Group ID |
+| METRIC_ID | NUMBER | Metric ID |
+| METRIC_NAME | VARCHAR2(64) | Metric name |
+| METRIC_UNIT | VARCHAR2(64) | Unit of measurement |
+| NUM_INTERVAL | NUMBER | Number of intervals observed |
+| MINVAL | NUMBER | Minimum value observed |
+| MAXVAL | NUMBER | Maximum value observed |
+| AVERAGE | NUMBER | Average over the period |
+| STANDARD_DEVIATION | NUMBER | One standard deviation |
+| SUM_SQUARES | NUMBER | Sum of the squared deviations from the mean |
+| CON_DBID | NUMBER | The database ID of the PDB for the sampled session |
+| CON_ID | NUMBER | The ID of the container that CON_DBID identifies. Possible values include: When queried from a non-CDB, the statistics for that instance are returned, and the CON_ID value is 0 . When queried from the root of a CDB, the statistics in every container are returned, and the CON_ID value indicates the container to which the statistics belong. When queried from a PDB, statistics from that PDB are returned, and the CON_ID value is the container ID for that PDB. |
+
+## Usage Notes
+
+Note: " V$CON_SYSMETRIC_SUMMARY " " DBA_HIST_SYSMETRIC_SUMMARY " Note: " V$CON_SYSMETRIC_SUMMARY " " DBA_HIST_SYSMETRIC_SUMMARY "

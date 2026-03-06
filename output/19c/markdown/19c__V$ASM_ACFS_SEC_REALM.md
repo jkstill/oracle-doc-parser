@@ -1,0 +1,32 @@
+---
+id: 19c__V$ASM_ACFS_SEC_REALM
+name: V$ASM_ACFS_SEC_REALM
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: general
+tags: [dynamic_performance]
+source_file: V-ASM_ACFS_SEC_REALM.html
+---
+
+# V$ASM_ACFS_SEC_REALM
+
+V$ASM_ACFS_SEC_REALM contains an entry for every realm in the Oracle ACFS security file system in an Oracle Automatic Storage Management (Oracle ASM) instance. This view also supports GV$ global views.
+
+## Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| REALM_NAME | VARCHAR2(255) |  |
+| REALM_STATUS | NUMBER |  |
+| REALM_ENCR_STATUS | NUMBER |  |
+| REALM_ENCR_KEYLEN | NUMBER |  |
+| REALM_ENCR_ALGO | VARCHAR2(7) |  |
+| REALM_DESC | VARCHAR2(1024) |  |
+| FS_NAME | VARCHAR2(1024) |  |
+| VOL_DEVICE | VARCHAR2(256) |  |
+| CON_ID | NUMBER |  |
+
+## Usage Notes
+
+See Also: Oracle Automatic Storage Management Administrator's Guide for more information about Oracle Automatic Storage Management Cluster File System (Oracle ACFS) Oracle Automatic Storage Management Administrator's Guide for additional information about using views to display Oracle Automatic Storage Management Cluster File System (Oracle ACFS) and Oracle ASM Dynamic Volume Manager (Oracle ADVM) information Note: To display information about Oracle ACFS file systems or volumes that are located on nodes in an Oracle Flex ASM configuration, you must connect to the Oracle ASM proxy instance instead of the local Oracle ASM instance. For information about Oracle Flex ASM, refer to Oracle Automatic Storage Management Administrator's Guide . See Also: Oracle Automatic Storage Management Administrator's Guide for more information about Oracle Automatic Storage Management Cluster File System (Oracle ACFS) Oracle Automatic Storage Management Administrator's Guide for additional information about using views to display Oracle Automatic Storage Management Cluster File System (Oracle ACFS) and Oracle ASM Dynamic Volume Manager (Oracle ADVM) information Note: To display information about Oracle ACFS file systems or volumes that are located on nodes in an Oracle Flex ASM configuration, you must connect to the Oracle ASM proxy instance instead of the local Oracle ASM instance. For information about Oracle Flex ASM, refer to Oracle Automatic Storage Management Administrator's Guide .

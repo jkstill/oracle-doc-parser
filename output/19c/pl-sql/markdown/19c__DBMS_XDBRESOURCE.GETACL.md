@@ -1,0 +1,34 @@
+---
+id: 19c__DBMS_XDBRESOURCE.GETACL
+name: DBMS_XDBRESOURCE.GETACL
+object_type: plsql_function
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_XDBRESOURCE
+tags: [dbms_xdbresource]
+source_file: DBMS_XDBRESOURCE.html
+---
+
+# DBMS_XDBRESOURCE.GETACL
+
+Given an XDBResource, this function returns its ACL as string.
+
+## Syntax
+
+```sql
+DBMS_XDBRESOURCE.GETACL (
+   res   IN    XDBResource) 
+ RETURN VARCHAR2;
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| res | XDBResource) | IN | XDBResource |
+
+**Returns:** `VARCHAR2`
+
+## Usage Notes
+
+Syntax DBMS_XDBRESOURCE.GETACL ( res IN XDBResource) RETURN VARCHAR2; Parameters Table 200-3 GETACL Function Parameters Parameter Description res XDBResource

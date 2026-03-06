@@ -1,0 +1,18 @@
+---
+id: 19c__USER_XML_TABLES
+name: USER_XML_TABLES
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: tables
+tags: [user]
+source_file: USER_XML_TABLES.html
+---
+
+# USER_XML_TABLES
+
+USER_XML_TABLES describes the XML tables owned by the current user. Its columns (except for OWNER ) are the same as those in ALL_XML_TABLES .
+
+## Usage Notes
+
+See Also: " ALL_XML_TABLES " See Also: " ALL_XML_TABLES "

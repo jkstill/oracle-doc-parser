@@ -1,0 +1,44 @@
+---
+id: 19c__DBMS_SCHEDULER.ADD_JOB_EMAIL_NOTIFICATION
+name: DBMS_SCHEDULER.ADD_JOB_EMAIL_NOTIFICATION
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_SCHEDULER
+tags: [dbms_scheduler]
+source_file: DBMS_SCHEDULER.html
+---
+
+# DBMS_SCHEDULER.ADD_JOB_EMAIL_NOTIFICATION
+
+This procedure adds e-mail notifications for a job. E-mails are then sent to the specified list of recipients whenever any of the specified job state events is raised.
+
+## Syntax
+
+```sql
+DBMS_SCHEDULER.ADD_JOB_EMAIL_NOTIFICATION (
+    job_name             IN VARCHAR2,
+    recipients           IN VARCHAR2,
+    sender               IN VARCHAR2 DEFAULT NULL,
+    subject              IN VARCHAR2 DEFAULT DBMS_SCHEDULER.DEFAULT_NOTIFICATION_SUBJECT,
+    body                 IN VARCHAR2 DEFAULT DBMS_SCHEDULER.DEFAULT_NOTIFICATION_BODY,
+    events               IN VARCHAR2 DEFAULT 'JOB_FAILED,JOB_BROKEN,JOB_SCH_LIM_REACHED,
+                             JOB_CHAIN_STALLED,JOB_OVER_MAX_DUR',
+    filter_condition     IN VARCHAR2 DEFAULT NULL);
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| job_name | VARCHAR2 | IN | Name of the job that e-mail notifications are added for. Cannot be NULL . |
+| recipients | VARCHAR2 | IN | Comma-separated list of e-mail addresses to send notifications to. E-mail notifications for all listed events are sent to all recipients. Cannot be NULL . |
+| sender | VARCHAR2 | IN | e-mail address to use as the sender address (the From: address) in the e-mail header. If NULL or omitted, the e-mail address specified in the Scheduler attribute email_sender is used. See Oracle Database Administrator's Guide for more information on this Scheduler attribute. |
+| subject | VARCHAR2 | IN | The subject to use in the e-mail header. Table 151-15 describes the variables that you can include within this parameter. The Scheduler assigns values to these variables before sending the notification. If subject is omitted, the default subject is used. The default subject is the following text, where text enclosed in the '%' character represents a variable: 'Oracle Scheduler Job Notification - %job_owner%.%job_name%.%job_subname% %event_type%' |
+| body | VARCHAR2 | IN | The body of the e-mail message. Table 151-15 describes the variables that you can include within this parameter. The Scheduler assigns values to these variables before sending the notification. If body is omitted, the default body is used. The default body is the following text, where text enclosed in the '%' character represents a variable: 'Job: %job_owner%.%job_name%.%job_subname% Event: %event_type% Date: %event_timestamp% Log id: %log_id% Job class: %job_class_name% Run count: %run_count% Failure count: %failure_count% Retry count: %retry_count% Error code: %error_code% Error message: %error_message%' |
+| events | VARCHAR2 | IN | Comma-separate list of job state events to send e-mail notifications for. Cannot be NULL . A notification is sent to all recipients if any of the listed events is raised. Table 151-84 lists the valid events for this parameter. If events is omitted, notifications are sent for the following default events: JOB_FAILED,JOB_BROKEN,JOB_SCH_LIM_REACHED,JOB_CHAIN_STALLED,JOB_OVER_MAX_DUR |
+| filter_condition | VARCHAR2 | IN | Used to filter events to send e-mail notifications for. If NULL , all occurrences of the specified events cause e-mail notifications to be sent. filter_condition must be a boolean SQL WHERE clause that may refer to the :event bind variable. This bind variable is automatically bound to an object of type SCHEDULER$_EVENT_INFO that represents the raised event. For example, to send an e-mail notification only when the error number in an event is 600 or 700, use the following filter_condition : :event.error_code=600 or :event.error_code=700 See " SCHEDULER$_EVENT_INFO Object Type " . |
+
+## Usage Notes
+
+Syntax DBMS_SCHEDULER.ADD_JOB_EMAIL_NOTIFICATION ( job_name IN VARCHAR2, recipients IN VARCHAR2, sender IN VARCHAR2 DEFAULT NULL, subject IN VARCHAR2 DEFAULT DBMS_SCHEDULER.DEFAULT_NOTIFICATION_SUBJECT, body IN VARCHAR2 DEFAULT DBMS_SCHEDULER.DEFAULT_NOTIFICATION_BODY, events IN VARCHAR2 DEFAULT 'JOB_FAILED,JOB_BROKEN,JOB_SCH_LIM_REACHED, JOB_CHAIN_STALLED,JOB_OVER_MAX_DUR', filter_condition IN VARCHAR2 DEFAULT NULL); Parameters Table 151-14 ADD_JOB_EMAIL_NOTIFICATION Procedure Parameters Parameter Description job_name Name of the job that e-mail notifications are added for. Cannot be NULL . recipients Comma-separated list of e-mail addresses to send notifications to. E-mail notifications for all listed events are sent to all recipients. Cannot be NULL . sender e-mail address to use as the sender address (the From: address) in the e-mail header. If NULL or omitted, the e-mail address specified in the Scheduler attribute email_sender is used. See Oracle Database Administrator's Guide for more information on this Scheduler attribute. subject The subject to use in the e-mail header. Table 151-15 describes the variables that you can include within this parameter. The Scheduler assigns values to these variables before sending the notification. If subject is omitted, the default subject is used. The default subject is the following text, where text enclosed in the '%' character represents a variable: 'Oracle Scheduler Job Notification - %job_owner%.%job_name%.%job_subname% %event_type%' body The body of the e-mail message. Table 151-15 describes the variables that you can include within this parameter. The Scheduler assigns values to these variables before sending the notification. If body is omitted, the default body is used. The default body is the following text, where text enclosed in the '%' character represents a variable: 'Job: %job_owner%.%job_name%.%job_subname% Event: %event_type% Date: %event_timestamp% Log id: %log_id% Job class: %job_class_name% Run count: %run_count% Failure count: %failure_count% Retry count: %retry_count% Error code: %error_code% Error message: %error_message%' events Comma-separate list of job state events to send e-mail notifications for. Cannot be NULL . A notification is sent to all recipients if any of the listed events is raised. Table 151-84 lists the valid events for this parameter. If events is omitted, notifications are sent for the following default events: JOB_FAILED,JOB_BROKEN,JOB_SCH_LIM_REACHED,JOB_CHAIN_STALLED,JOB_OVER_MAX_DUR filter_condition Used to filter events to send e-mail notifications for. If NULL , all occurrences of the specified events cause e-mail notifications to be sent. filter_condition must be a boolean SQL WHERE clause that may refer to the :event bind variable. This bind variable is automatically bound to an object of type SCHEDULER$_EVENT_INFO that represents the raised event. For example, to send an e-mail notification only when the error number in an event is 600 or 700, use the following filter_condition : :event.error_code=600 or :event.error_code=700 See " SCHEDULER$_EVENT_INFO Object Type " . Table 151-15 lists the variables that you can use in the subject and body arguments. Table 151-15 Variables Used in the SUBJECT and BODY Parameters Variable Comment %job_owner% Schema in which job was created %job_name% Name of the job that e-mail notifications are added for %job_subname% Present for event-based jobs with the parallel_instances attribute set and for chain steps %event_type% Valid values are listed in Table 151-84 %event_timestamp% Time at which the event occurred %log_id% Refers to the LOG_ID column in views *_SCHEDULER_JOB_LOG and *_SCHEDULER_JOB_RUN_DETAILS %error_code% Number of the error code. %error_message% The text of the error message %run_count% Run count for the job when the event was raised %failure_count% Failure count for the job when the event was raised %retry_count% Retry count for the job when the event was raised Usage Notes You can call ADD_JOB_EMAIL_NOTIFICATION once for each different set of notifications that you want to configure for a particular job. For example, you may want to send notifications for the JOB_FAILED , JOB_BROKEN , JOB_SCH_LIM_REACHED , and JOB_CHAIN_STALLED events to the principle DBA and all senior DBAs, but send a notification for the JOB_OVER_MAX_DUR event only to the principle DBA. This procedure succeeds only if the Scheduler attribute email_server is set to a valid SMTP server. See Oracle Database Administrator's Guide for more information. To call this procedure, you must be the job owner or have the CREATE ANY JOB system privilege or have the ALTER object privilege on the job.

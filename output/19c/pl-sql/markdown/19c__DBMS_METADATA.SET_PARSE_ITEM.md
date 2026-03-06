@@ -1,0 +1,35 @@
+---
+id: 19c__DBMS_METADATA.SET_PARSE_ITEM
+name: DBMS_METADATA.SET_PARSE_ITEM
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_METADATA
+tags: [dbms_metadata]
+source_file: DBMS_METADATA.html
+---
+
+# DBMS_METADATA.SET_PARSE_ITEM
+
+This procedure is used for both retrieval and submission. This procedure enables output parsing and specifies an object attribute to be parsed and returned.
+
+## Syntax
+
+```sql
+DBMS_METADATA.SET_PARSE_ITEM (
+   handle       IN  NUMBER,
+   name         IN  VARCHAR2,
+   object_type  IN  VARCHAR2 DEFAULT NULL);
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| handle | NUMBER | IN | The handle returned from OPEN (or OPENW ). |
+| name | VARCHAR2 | IN | The name of the object attribute to be parsed and returned. See Table 107-21 for the attribute object type, name, and meaning. |
+| object_type | VARCHAR2 | IN | Designates the object type to which the parse item applies (this is an object type name, not a path name). By default, the parse item applies to the object type of the OPEN handle. When the OPEN handle designates a heterogeneous object type, behavior can be either of the following: If object_type is omitted, then the parse item applies to all object types within the heterogeneous collection . If object_type is specified, then the parse item only applies to that specific object type within the collection . This parameter only applies when SET_PARSE_ITEM is used for object retrieval. |
+
+## Usage Notes
+
+See Also: For more information about related subprograms: Subprograms for Retrieving Multiple Objects From the Database Subprograms for Submitting XML to the Database See Also: For more information about related subprograms: Subprograms for Retrieving Multiple Objects From the Database Subprograms for Submitting XML to the Database Syntax The following syntax applies when SET_PARSE_ITEM is used for object retrieval: DBMS_METADATA.SET_PARSE_ITEM ( handle IN NUMBER, name IN VARCHAR2, object_type IN VARCHAR2 DEFAULT NULL); The following syntax applies when SET_PARSE_ITEM is used for XML submission: DBMS_METADATA.SET_PARSE_ITEM ( handle IN NUMBER, name IN VARCHAR2); Parameters Table 107-20 SET_PARSE_ITEM Procedure Parameters Parameter Description handle The handle returned from OPEN (or OPENW ). name The name of the object attribute to be parsed and returned. See Table 107-21 for the attribute object type, name, and meaning. object_type Designates the object type to which the parse item applies (this is an object type name, not a path name). By default, the parse item applies to the object type of the OPEN handle. When the OPEN handle designates a heterogeneous object type, behavior can be either of the following: If object_type is omitted, then the parse item applies to all object types within the heterogeneous collection . If object_type is specified, then the parse item only applies to that specific object type within the collection . This parameter only applies when SET_PARSE_ITEM is used for object retrieval. Table 107-21 describes the object type, name, and meaning of the items available in the SET_PARSE_ITEM procedure. Because new items are occasionally added, you can query the DBMS_METADATA_PARSE_ITEMS view to see a complete list of valid parse items or to find valid parse items for a specific object type. Table 107-21 SET_PARSE_ITEM: Parse Items Object Type Name Meaning All objects VERB If FETCH_XML_CLOB is called, no value is returned. If FETCH_DDL is called, then for every row in the sys.ku$_ddls nested table returned by FETCH_DDL the verb in the corresponding ddlText is returned. If the ddlText is a SQL DDL statement, then the SQL verb (for example, CREATE , GRANT , AUDIT ) is returned. If the ddlText is a procedure call (for example, DBMS_AQADM . CREATE_QUEUE_TABLE()) then the package.procedure-name is returned. All objects OBJECT_TYPE If FETCH_XML_CLOB is called, an object type name from Table 107-12 is returned. If FETCH_DDL is called and the ddlText is a SQL DDL statement whose verb is CREATE or ALTER , the object type as used in the DDL statement is returned (for example, TABLE , PACKAGE _ BODY , and so on). Otherwise, an object type name from Table 107-12 is returned. Schema objects SCHEMA The object schema is returned. If the object is not a schema object, no value is returned. Named objects NAME The object name is returned. If the object is not a named object, no value is returned. TABLE, TABLE_DATA, INDEX TABLESPACE The name of the object's tablespace or, if the object is a partitioned table, the default tablespace is returned. For a TABLE_DATA object, this is always the tablespace where the rows are stored. TRIGGER ENABLE If the trigger is enabled, ENABLE is returned. If the trigger is disabled, DISABLE is returned. OBJECT_GRANT, TABLESPACE_QUOTA GRANTOR The grantor is returned. Dependent objects (including domain index secondary tables) BASE_OBJECT_NAME The name of the base object is returned. If the object is not a dependent object, no value is returned. Dependent objects (including domain index secondary tables) BASE_OBJECT_SCHEMA The schema of the base object is returned. If the object is not a dependent object, no value is returned. Dependent objects (including domain index secondary tables) BASE_OBJECT_TYPE The object type of the base object is returned. If the object is not a dependent object, no value is returned. Granted objects GRANTEE The grantee is returned. If the object is not a granted object, no value is returned. Usage Notes These notes apply when using SET_PARSE_ITEM to retrieve objects. By default, the FETCH_xxx routines return an object's metadata as XML or creation DDL. By calling SET_PARSE_ITEM you can request that individual attributes of the object be returned as well. You can call SET_PARSE_ITEM multiple times to ask for multiple items to be parsed and returned. Parsed items are returned in the sys . ku$_parsed_items nested table. For TABLE_DATA objects, the following parse item return values are of interest: If Object Is NAME, SCHEMA BASE_OBJECT_NAME, BASE_OBJECT_SCHEMA nonpartitioned table table name, schema table name, schema table partition partition name, schema table name, schema nested table storage table name, schema name and schema of top-level table ( not the parent nested table) Tables are not usually thought of as dependent objects. However, secondary tables for domain indexes are dependent on the domain indexes. Consequently, the BASE_OBJECT_NAME , BASE_OBJECT_SCHEMA and BASE_OBJECT_TYPE parse items for secondary TABLE objects return the name, schema, and type of the domain index. See Also: " FETCH_xxx Functions and Procedures " Oracle Database Utilities for more information about using the metadata APIs. By default, the CONVERT and PUT procedures simply transform an object's XML metadata to DDL. By calling SET_PARSE_ITEM you can request that individual attributes of the object be returned as well.

@@ -1,0 +1,48 @@
+---
+id: 19c__V$PERSISTENT_QMN_CACHE
+name: V$PERSISTENT_QMN_CACHE
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: general
+tags: [dynamic_performance]
+source_file: V-PERSISTENT_QMN_CACHE.html
+---
+
+# V$PERSISTENT_QMN_CACHE
+
+QUEUE_TABLE_ID
+
+## Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| QUEUE_TABLE_ID | NUMBER |  |
+| TYPE | VARCHAR2(32) |  |
+| STATUS | NUMBER |  |
+| NEXT_SERVICE_TIME | TIMESTAMP(3) WITH TIME ZONE |  |
+| WINDOW_END_TIME | TIMESTAMP(3) WITH TIME ZONE |  |
+| TOTAL_RUNS | NUMBER |  |
+| TOTAL_LATENCY | NUMBER |  |
+| TOTAL_ELAPSED_TIME | NUMBER |  |
+| TOTAL_CPU_TIME | NUMBER |  |
+| TMGR_ROWS_PROCESSED | NUMBER |  |
+| TMGR_ELAPSED_TIME | NUMBER |  |
+| TMGR_CPU_TIME | NUMBER |  |
+| LAST_TMGR_PROCESSING_TIME | TIMESTAMP(3) WITH TIME ZONE |  |
+| DEQLOG_ROWS_PROCESSED | NUMBER |  |
+| DEQLOG_PROCESSING_ELAPSED_TIME | NUMBER |  |
+| DEQLOG_PROCESSING_CPU_TIME | NUMBER |  |
+| LAST_DEQLOG_PROCESSING_TIME | TIMESTAMP(3) WITH TIME ZONE |  |
+| DEQUEUE_INDEX_BLOCKS_FREED | NUMBER |  |
+| HISTORY_INDEX_BLOCKS_FREED | NUMBER |  |
+| TIME_INDEX_BLOCKS_FREED | NUMBER |  |
+| INDEX_CLEANUP_COUNT | NUMBER |  |
+| INDEX_CLEANUP_ELAPSED_TIME | NUMBER |  |
+| INDEX_CLEANUP_CPU_TIME | NUMBER |  |
+| LAST_INDEX_CLEANUP_TIME | TIMESTAMP(3) WITH TIME ZONE |  |
+| CON_ID | NUMBER |  |
+
+## Usage Notes
+
+Previous Next JavaScript must be enabled to correctly display this content

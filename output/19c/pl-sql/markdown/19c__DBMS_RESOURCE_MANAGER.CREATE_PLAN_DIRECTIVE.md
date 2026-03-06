@@ -1,0 +1,117 @@
+---
+id: 19c__DBMS_RESOURCE_MANAGER.CREATE_PLAN_DIRECTIVE
+name: DBMS_RESOURCE_MANAGER.CREATE_PLAN_DIRECTIVE
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_RESOURCE_MANAGER
+tags: [dbms_resource_manager]
+source_file: DBMS_RESOURCE_MANAGER.html
+---
+
+# DBMS_RESOURCE_MANAGER.CREATE_PLAN_DIRECTIVE
+
+This procedure creates resource plan directives.
+
+## Syntax
+
+```sql
+DBMS_RESOURCE_MANAGER.CREATE_PLAN_DIRECTIVE (
+   plan                         IN VARCHAR2, 
+   group_or_subplan             IN VARCHAR2, 
+   comment                      IN VARCHAR2 DEFAULT NULL, 
+   cpu_p1                       IN NUMBER   DEFAULT NULL, -- deprecated
+   cpu_p2                       IN NUMBER   DEFAULT NULL, -- deprecated
+   cpu_p3                       IN NUMBER   DEFAULT NULL, -- deprecated
+   cpu_p4                       IN NUMBER   DEFAULT NULL, -- deprecated
+   cpu_p5                       IN NUMBER   DEFAULT NULL, -- deprecated
+   cpu_p6                       IN NUMBER   DEFAULT NULL, -- deprecated
+   cpu_p7                       IN NUMBER   DEFAULT NULL, -- deprecated
+   cpu_p8                       IN NUMBER   DEFAULT NULL, -- deprecated
+   active_sess_pool_p1          IN NUMBER   DEFAULT NULL,
+   queueing_p1                  IN NUMBER   DEFAULT NULL,
+   parallel_degree_limit_p1     IN NUMBER   DEFAULT NULL,
+   switch_group                 IN VARCHAR2 DEFAULT NULL,
+   switch_time                  IN NUMBER   DEFAULT NULL,
+   switch_estimate              IN BOOLEAN  DEFAULT FALSE,
+   max_est_exec_time            IN NUMBER   DEFAULT NULL,
+   undo_pool                    IN NUMBER   DEFAULT NULL,
+   max_idle_time                IN NUMBER   DEFAULT NULL,
+   max_idle_blocker_time        IN NUMBER   DEFAULT NULL,
+   switch_time_in_call          IN NUMBER   DEFAULT NULL, -- deprecated
+   mgmt_p1                      IN NUMBER   DEFAULT NULL,
+   mgmt_p2                      IN NUMBER   DEFAULT NULL,
+   mgmt_p3                      IN NUMBER   DEFAULT NULL,
+   mgmt_p4                      IN NUMBER   DEFAULT NULL,
+   mgmt_p5                      IN NUMBER   DEFAULT NULL,
+   mgmt_p6                      IN NUMBER   DEFAULT NULL,
+   mgmt_p7                      IN NUMBER   DEFAULT NULL,
+   mgmt_p8                      IN NUMBER   DEFAULT NULL,
+   switch_io_megabytes          IN NUMBER   DEFAULT NULL,
+   switch_io_reqs               IN NUMBER   DEFAULT NULL,
+   switch_for_call              IN BOOLEAN  DEFAULT NULL,
+   max_utilization_limit        IN NUMBER   DEFAULT NULL,  -- deprecated
+   parallel_target_percentage   IN NUMBER   DEFAULT NULL,  -- deprecated 
+   parallel_server_limit        IN NUMBER   DEFAULT NULL,
+   utilization_limit            IN NUMBER   DEFAULT NULL,
+   switch_io_logical            IN NUMBER   DEFAULT NULL,
+   switch_elapsed_time          IN NUMBER   DEFAULT NULL,
+   shares                       IN NUMBER   DEFAULT NULL,
+   parallel_stmt_critical       IN VARCHAR2 DEFAULT NULL,
+   session_pga_limit            IN NUMBER   DEFAULT NULL,
+   pq_timeout_action            IN NUMBER   DEFAULT NULL,
+   parallel_queue_timeout       IN NUMBER   DEFAULT NULL,);
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| plan | VARCHAR2 | IN | Name of the resource plan |
+| group_or_subplan | VARCHAR2 | IN | Name of the consumer group or subplan |
+| comment | VARCHAR2 | IN | Comment for the plan directive |
+| cpu_p1 | NUMBER | IN | -- deprecated: use mgmt_p1 or, even better, shares instead |
+| cpu_p2 | NUMBER | IN | -- deprecated: use mgmt_p2 or, even better, shares instead |
+| cpu_p3 | NUMBER | IN | -- deprecated: use mgmt_p3 or, even better, shares instead |
+| cpu_p4 | NUMBER | IN | -- deprecated: use mgmt_p4 or, even better, shares instead |
+| cpu_p5 | NUMBER | IN | -- deprecated: use mgmt_p5 or, even better, shares instead |
+| cpu_p6 | NUMBER | IN | -- deprecated: use mgmt_p6 or, even better, shares instead |
+| cpu_p7 | NUMBER | IN | -- deprecated: use mgmt_p7 or, even better, shares instead |
+| cpu_p8 | NUMBER | IN | -- deprecated: use mgmt_p8 or, even better, shares instead |
+| active_sess_pool_p1 | NUMBER | IN | Specifies maximum number of sessions that can currently have an active call |
+| queueing_p1 | NUMBER | IN | Specified time (in seconds) after which a call in the inactive session queue (waiting for execution) will time out. Default is NULL , which means unlimited. |
+| parallel_degree_limit_p1 | NUMBER | IN | Specifies a limit on the degree of parallelism for any operation. Default is NULL , which means unlimited. If the value is 0, then all operations will be serial. |
+| switch_group | VARCHAR2 | IN | Specifies consumer group to switch to, once a switch condition is met. If the group name is CANCEL_SQL , then the current call is canceled when the switch condition is met. If the group name is KILL_SESSION , then the session is killed when the switch condition is met. If the group name is LOG_ONLY , then no action is taken other than recording this event via SQL monitor.Default is NULL . |
+| switch_time | NUMBER | IN | Specifies the time on CPU (not elapsed time) that a session can execute before an action is taken. Default is NULL , which means unlimited. As with other switch directives, if switch_for_call is TRUE , the number of CPUs is accumulated from the start of a call. Otherwise, the number of CPUs is accumulated for the length of the session. |
+| switch_estimate | BOOLEAN | IN | If TRUE , tells Oracle to use its execution time estimate to automatically switch the consumer group of an operation before beginning its execution. This is used in conjunction with the switch_time directive. Default value is FALSE . |
+| max_est_exec_time | NUMBER | IN | Specifies the maximum execution time (in CPU seconds) allowed for a session. If the optimizer estimates that an operation will take longer than MAX_EST_EXEC_TIME , the operation is not started and ORA-07455 is issued. If the optimizer does not provide an estimate, this directive has no effect. Default is NULL , which means unlimited. |
+| undo_pool | NUMBER | IN | Limits the size in kilobytes of the undo records corresponding to uncommitted transactions by this consumer group |
+| max_idle_time | NUMBER | IN | Indicates the maximum session idle time. Default is NULL , which means unlimited. |
+| max_idle_blocker_time | NUMBER | IN | Maximum amount of time in seconds that a session can be idle while blocking another session's acquisition of a resource |
+| switch_time_in_call | NUMBER | IN | Deprecated. If this parameter is specified, switch_time is set to switch_time_in_call (in seconds) and switch_for_call is effectively set to TRUE . It is better to use switch_time and switch_for_call . |
+| mgmt_p1 | NUMBER | IN | Resource allocation value for level 1 (replaces cpu_p1 ): EMPHASIS - specifies the resource percentage at the first level RATIO - specifies the weight of resource usage |
+| mgmt_p2 | NUMBER | IN | Resource allocation value for level 2 (replaces cpu_p2 ) EMPHASIS - specifies the resource percentage at the second level RATIO - non-applicable |
+| mgmt_p3 | NUMBER | IN | Resource allocation value for level 3 (replaces cpu_p3 ) EMPHASIS - specifies the resource percentage at the third level RATIO - non-applicable |
+| mgmt_p4 | NUMBER | IN | Resource allocation value for level 4 (replaces cpu_p4 ) EMPHASIS - specifies the resource percentage at the fourth level RATIO - non-applicable |
+| mgmt_p5 | NUMBER | IN | Resource allocation value for level 5 (replaces cpu_p5 ) EMPHASIS - specifies the resource percentage at the fifth level RATIO - non-applicable |
+| mgmt_p6 | NUMBER | IN | Resource allocation value for level 6 (replaces cpu_p6 ) EMPHASIS - specifies the resource percentage at the sixth level RATIO - non-applicable |
+| mgmt_p7 | NUMBER | IN | Resource allocation value for level 7 (replaces cpu_p7 ) EMPHASIS - specifies the resource percentage at the seventh level RATIO - non-applicable |
+| mgmt_p8 | NUMBER | IN | Resource allocation value for level 8 (replaces cpu_p8 ) EMPHASIS - specifies the resource percentage at the eighth level RATIO - non-applicable |
+| switch_io_megabytes | NUMBER | IN | Specifies the amount of I/O (in MB) that a session can issue before an action is taken. Default is NULL , which means unlimited. As with other switch directives, if switch_for_call is TRUE , the number of CPUs is accumulated from the start of a call. Otherwise, the number of CPUs is accumulated for the length of the session. |
+| switch_io_reqs | NUMBER | IN | Specifies the number of I/O requests that a session can issue before an action is taken. Default is NULL , which means unlimited. As with other switch directives, if switch_for_call is TRUE , the number of CPUs is accumulated from the start of a call. Otherwise, the number of CPUs is accumulated for the length of the session. |
+| switch_for_call | BOOLEAN | IN | Specifies that if an action is taken because of the switch_time , switch_io_megabytes , switch_io_reqs , switch_io_logical or switch_elapsed_time parameters, the consumer group is restored to its original consumer group at the end of the top call. Default is NULL , which means that the original consumer group is not restored at the end of the top call. |
+| max_utilization_limit | NUMBER | IN | -- deprecated: use utilization_limit instead |
+| parallel_target_percentage | NUMBER | IN | -- deprecated: use parallel_sever_limit instead |
+| parallel_queue_timeout | NUMBER | IN | Specifies the time (in seconds) that a parallel statement may remain in its Consumer Group's parallel statement queue before it is removed and terminated with an error (ORA- 07454). Note: You can use the pq_timeout_action parameter to specify the action to be taken when a parallel statement is removed from the queue. |
+| parallel_sever_limit |  |  | Specifies the maximum percentage of parallel_servers_target parallel servers that the Consumer Group can use, after which parallel statements are queued. |
+| utilization_limit | NUMBER | IN | Resource limit. Currently it includes CPU and I/O for Exadata. For CPU, this limits the CPU utilization for the consumer group. For Exadata I/O, this limits the disk utilization for the consumer group. This does not apply to parallel servers. |
+| switch_io_logical | NUMBER | IN | Number of logical IOs that will trigger the action specified by switch_group . As with other switch directives, if switch_for_call is TRUE , the number of logical IOs is accumulated from the start of a call. Otherwise, the number of logical IOs is accumulated for the length of the session. |
+| switch_elapsed_time | NUMBER | IN | Elapsed time that will trigger the action specified by switch_group . As with other switch directives, if switch_for_call is TRUE , the elapsed time is accumulated from the start of a call. Otherwise, the elapsed time is accumulated for the length of the session. |
+| shares | NUMBER | IN | Specifies the share of resource allocation for the consumer group. CPU Resource Manager and Exadata I/O Resource Manager are enabled by specifying shares for each consumer group. The shares parameter is also used for Parallel Statement Queuing. If CPU Resource Manager and Exadata I/O Resource Manager are enabled, then the default value is 1 . |
+| parallel_stmt_critical | VARCHAR2 | IN | If set to BYPASS_QUEUE , parallel statements from the Consumer Group are not queued, regardless of the PARALLEL_DEGREE_POLICY parameter value. If set to QUEUE , all the parallel statements from the consumer group, irrespective of the parallel_degree_policy parameter value, are eligible for queuing. Default is FALSE , which means that parallel statements are eligible for queuing, based on the parallel_degree_policy parameter value. |
+| session_pga_limit | NUMBER | IN | Maximum amount of untunable PGA (in MB) that a session in this consumer group can allocate before being terminated. NULL (default) indicates no limit. SQL operations that allocate tunable PGA (operations that can opt to use temp space) are not controlled by this limit. |
+| pq_timeout_action | NUMBER | IN | Specifies the action to be taken when a parallel statement is removed from the queue due to parallel_queue_timeout . The values are: CANCEL — The parallel statement is terminated with error ORA-7454 RUN — The SQL statement runs immediately, and might get downgraded if parallel servers are unavailable The default action of this parameter is CANCEL . |
+
+## Usage Notes
+
+Note: The parameters max_utilization_limit and parallel_target_percentage are deprecated with Oracle Database 11 g Release 1 (11.1.0.1), and are replaced by utilization_limit and parallel_server_limit . Note: The parameters max_utilization_limit and parallel_target_percentage are deprecated with Oracle Database 11 g Release 1 (11.1.0.1), and are replaced by utilization_limit and parallel_server_limit . Syntax DBMS_RESOURCE_MANAGER.CREATE_PLAN_DIRECTIVE ( plan IN VARCHAR2, group_or_subplan IN VARCHAR2, comment IN VARCHAR2 DEFAULT NULL, cpu_p1 IN NUMBER DEFAULT NULL, -- deprecated cpu_p2 IN NUMBER DEFAULT NULL, -- deprecated cpu_p3 IN NUMBER DEFAULT NULL, -- deprecated cpu_p4 IN NUMBER DEFAULT NULL, -- deprecated cpu_p5 IN NUMBER DEFAULT NULL, -- deprecated cpu_p6 IN NUMBER DEFAULT NULL, -- deprecated cpu_p7 IN NUMBER DEFAULT NULL, -- deprecated cpu_p8 IN NUMBER DEFAULT NULL, -- deprecated active_sess_pool_p1 IN NUMBER DEFAULT NULL, queueing_p1 IN NUMBER DEFAULT NULL, parallel_degree_limit_p1 IN NUMBER DEFAULT NULL, switch_group IN VARCHAR2 DEFAULT NULL, switch_time IN NUMBER DEFAULT NULL, switch_estimate IN BOOLEAN DEFAULT FALSE, max_est_exec_time IN NUMBER DEFAULT NULL, undo_pool IN NUMBER DEFAULT NULL, max_idle_time IN NUMBER DEFAULT NULL, max_idle_blocker_time IN NUMBER DEFAULT NULL, switch_time_in_call IN NUMBER DEFAULT NULL, -- deprecated mgmt_p1 IN NUMBER DEFAULT NULL, mgmt_p2 IN NUMBER DEFAULT NULL, mgmt_p3 IN NUMBER DEFAULT NULL, mgmt_p4 IN NUMBER DEFAULT NULL, mgmt_p5 IN NUMBER DEFAULT NULL, mgmt_p6 IN NUMBER DEFAULT NULL, mgmt_p7 IN NUMBER DEFAULT NULL, mgmt_p8 IN NUMBER DEFAULT NULL, switch_io_megabytes IN NUMBER DEFAULT NULL, switch_io_reqs IN NUMBER DEFAULT NULL, switch_for_call IN BOOLEAN DEFAULT NULL, max_utilization_limit IN NUMBER DEFAULT NULL, -- deprecated parallel_target_percentage IN NUMBER DEFAULT NULL, -- deprecated parallel_server_limit IN NUMBER DEFAULT NULL, utilization_limit IN NUMBER DEFAULT NULL, switch_io_logical IN NUMBER DEFAULT NULL, switch_elapsed_time IN NUMBER DEFAULT NULL, shares IN NUMBER DEFAULT NULL, parallel_stmt_critical IN VARCHAR2 DEFAULT NULL, session_pga_limit IN NUMBER DEFAULT NULL, pq_timeout_action IN NUMBER DEFAULT NULL, parallel_queue_timeout IN NUMBER DEFAULT NULL,); Note: Oracle recommends that you use shares instead of mgmt_p* . Note: Oracle recommends that you use shares instead of mgmt_p* . Parameters Table 142-10 CREATE_PLAN_DIRECTIVE Procedure Parameters Parameter Description plan Name of the resource plan group_or_subplan Name of the consumer group or subplan comment Comment for the plan directive cpu_p1 -- deprecated: use mgmt_p1 or, even better, shares instead cpu_p2 -- deprecated: use mgmt_p2 or, even better, shares instead cpu_p3 -- deprecated: use mgmt_p3 or, even better, shares instead cpu_p4 -- deprecated: use mgmt_p4 or, even better, shares instead cpu_p5 -- deprecated: use mgmt_p5 or, even better, shares instead cpu_p6 -- deprecated: use mgmt_p6 or, even better, shares instead cpu_p7 -- deprecated: use mgmt_p7 or, even better, shares instead cpu_p8 -- deprecated: use mgmt_p8 or, even better, shares instead active_sess_pool_p1 Specifies maximum number of sessions that can currently have an active call queueing_p1 Specified time (in seconds) after which a call in the inactive session queue (waiting for execution) will time out. Default is NULL , which means unlimited. parallel_degree_limit_p1 Specifies a limit on the degree of parallelism for any operation. Default is NULL , which means unlimited. If the value is 0, then all operations will be serial. switch_group Specifies consumer group to switch to, once a switch condition is met. If the group name is CANCEL_SQL , then the current call is canceled when the switch condition is met. If the group name is KILL_SESSION , then the session is killed when the switch condition is met. If the group name is LOG_ONLY , then no action is taken other than recording this event via SQL monitor.Default is NULL . switch_time Specifies the time on CPU (not elapsed time) that a session can execute before an action is taken. Default is NULL , which means unlimited. As with other switch directives, if switch_for_call is TRUE , the number of CPUs is accumulated from the start of a call. Otherwise, the number of CPUs is accumulated for the length of the session. switch_estimate If TRUE , tells Oracle to use its execution time estimate to automatically switch the consumer group of an operation before beginning its execution. This is used in conjunction with the switch_time directive. Default value is FALSE . max_est_exec_time Specifies the maximum execution time (in CPU seconds) allowed for a session. If the optimizer estimates that an operation will take longer than MAX_EST_EXEC_TIME , the operation is not started and ORA-07455 is issued. If the optimizer does not provide an estimate, this directive has no effect. Default is NULL , which means unlimited. undo_pool Limits the size in kilobytes of the undo records corresponding to uncommitted transactions by this consumer group max_idle_time Indicates the maximum session idle time. Default is NULL , which means unlimited. max_idle_blocker_time Maximum amount of time in seconds that a session can be idle while blocking another session's acquisition of a resource switch_time_in_call Deprecated. If this parameter is specified, switch_time is set to switch_time_in_call (in seconds) and switch_for_call is effectively set to TRUE . It is better to use switch_time and switch_for_call . mgmt_p1 Resource allocation value for level 1 (replaces cpu_p1 ): EMPHASIS - specifies the resource percentage at the first level RATIO - specifies the weight of resource usage mgmt_p2 Resource allocation value for level 2 (replaces cpu_p2 ) EMPHASIS - specifies the resource percentage at the second level RATIO - non-applicable mgmt_p3 Resource allocation value for level 3 (replaces cpu_p3 ) EMPHASIS - specifies the resource percentage at the third level RATIO - non-applicable mgmt_p4 Resource allocation value for level 4 (replaces cpu_p4 ) EMPHASIS - specifies the resource percentage at the fourth level RATIO - non-applicable mgmt_p5 Resource allocation value for level 5 (replaces cpu_p5 ) EMPHASIS - specifies the resource percentage at the fifth level RATIO - non-applicable mgmt_p6 Resource allocation value for level 6 (replaces cpu_p6 ) EMPHASIS - specifies the resource percentage at the sixth level RATIO - non-applicable mgmt_p7 Resource allocation value for level 7 (replaces cpu_p7 ) EMPHASIS - specifies the resource percentage at the seventh level RATIO - non-applicable mgmt_p8 Resource allocation value for level 8 (replaces cpu_p8 ) EMPHASIS - specifies the resource percentage at the eighth level RATIO - non-applicable switch_io_megabytes Specifies the amount of I/O (in MB) that a session can issue before an action is taken. Default is NULL , which means unlimited. As with other switch directives, if switch_for_call is TRUE , the number of CPUs is accumulated from the start of a call. Otherwise, the number of CPUs is accumulated for the length of the session. switch_io_reqs Specifies the number of I/O requests that a session can issue before an action is taken. Default is NULL , which means unlimited. As with other switch directives, if switch_for_call is TRUE , the number of CPUs is accumulated from the start of a call. Otherwise, the number of CPUs is accumulated for the length of the session. switch_for_call Specifies that if an action is taken because of the switch_time , switch_io_megabytes , switch_io_reqs , switch_io_logical or switch_elapsed_time parameters, the consumer group is restored to its original consumer group at the end of the top call. Default is NULL , which means that the original consumer group is not restored at the end of the top call. max_utilization_limit -- deprecated: use utilization_limit instead parallel_target_percentage -- deprecated: use parallel_sever_limit instead parallel_queue_timeout Specifies the time (in seconds) that a parallel statement may remain in its Consumer Group's parallel statement queue before it is removed and terminated with an error (ORA- 07454). Note: You can use the pq_timeout_action parameter to specify the action to be taken when a parallel statement is removed from the queue. parallel_sever_limit Specifies the maximum percentage of parallel_servers_target parallel servers that the Consumer Group can use, after which parallel statements are queued. utilization_limit Resource limit. Currently it includes CPU and I/O for Exadata. For CPU, this limits the CPU utilization for the consumer group. For Exadata I/O, this limits the disk utilization for the consumer group. This does not apply to parallel servers. switch_io_logical Number of logical IOs that will trigger the action specified by switch_group . As with other switch directives, if switch_for_call is TRUE , the number of logical IOs is accumulated from the start of a call. Otherwise, the number of logical IOs is accumulated for the length of the session. switch_elapsed_time Elapsed time that will trigger the action specified by switch_group . As with other switch directives, if switch_for_call is TRUE , the elapsed time is accumulated from the start of a call. Otherwise, the elapsed time is accumulated for the length of the session. shares Specifies the share of resource allocation for the consumer group. CPU Resource Manager and Exadata I/O Resource Manager are enabled by specifying shares for each consumer group. The shares parameter is also used for Parallel Statement Queuing. If CPU Resource Manager and Exadata I/O Resource Manager are enabled, then the default value is 1 . parallel_stmt_critical If set to BYPASS_QUEUE , parallel statements from the Consumer Group are not queued, regardless of the PARALLEL_DEGREE_POLICY parameter value. If set to QUEUE , all the parallel statements from the consumer group, irrespective of the parallel_degree_policy parameter value, are eligible for queuing. Default is FALSE , which means that parallel statements are eligible for queuing, based on the parallel_degree_policy parameter value. session_pga_limit Maximum amount of untunable PGA (in MB) that a session in this consumer group can allocate before being terminated. NULL (default) indicates no limit. SQL operations that allocate tunable PGA (operations that can opt to use temp space) are not controlled by this limit. pq_timeout_action Specifies the action to be taken when a parallel statement is removed from the queue due to parallel_queue_timeout . The values are: CANCEL — The parallel statement is terminated with error ORA-7454 RUN — The SQL statement runs immediately, and might get downgraded if parallel servers are unavailable The default action of this parameter is CANCEL .

@@ -1,0 +1,31 @@
+---
+id: 19c__ALL_HIERARCHIES_AE
+name: ALL_HIERARCHIES_AE
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: general
+tags: [all]
+source_file: ALL_HIERARCHIES_AE.html
+---
+
+# ALL_HIERARCHIES_AE
+
+ALL_HIERARCHIES_AE describes the hierarchies (across all editions) accessible to the current user.
+
+## Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| OWNER | VARCHAR2(128) | Owner of the hierarchy |
+| HIER_NAME | VARCHAR2(128) | Name of the hierarchy |
+| DIMENSION_OWNER | VARCHAR2(128) | Owner of the attribute dimension used by the hierarchy |
+| DIMENSION_NAME | VARCHAR2(128) | Name of the attribute dimension used by the hierarchy |
+| PARENT_ATTR | VARCHAR2 | The value of this column is always NULL |
+| COMPILE_STATE | VARCHAR2(7) | Compile status of the hierarchy: VALID INVALID |
+| ORIGIN_CON_ID | NUMBER | The ID of the container where the data originates. Possible values include: 0 : This value is used for rows in non-CDBs. This value is not used for CDBs. n : This value is used for rows containing data that originate in the container with container ID n ( n = 1 if the row originates in root). |
+| EDITION_NAME | VARCHAR2(128) | Name of the application edition where the hierarchy is defined |
+
+## Usage Notes
+
+Related Views DBA_HIERARCHIES_AE describes all hierarchies (across all editions) in the database. USER_HIERARCHIES_AE describes the hierarchies (across all editions) owned by the current user. This view does not display the OWNER column. Note: This view is available starting with Oracle Database release 19c, version 19.13. See Also: " DBA_HIERARCHIES_AE " " USER_HIERARCHIES_AE " Note: This view is available starting with Oracle Database release 19c, version 19.13. See Also: " DBA_HIERARCHIES_AE " " USER_HIERARCHIES_AE "

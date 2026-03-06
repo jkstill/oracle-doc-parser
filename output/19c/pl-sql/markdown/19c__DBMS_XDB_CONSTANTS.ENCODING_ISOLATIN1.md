@@ -1,0 +1,27 @@
+---
+id: 19c__DBMS_XDB_CONSTANTS.ENCODING_ISOLATIN1
+name: DBMS_XDB_CONSTANTS.ENCODING_ISOLATIN1
+object_type: plsql_function
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_XDB_CONSTANTS
+tags: [dbms_xdb_constants]
+source_file: DBMS_XDB_CONSTANTS.html
+---
+
+# DBMS_XDB_CONSTANTS.ENCODING_ISOLATIN1
+
+This function returns 'WE8ISO8859P1' .
+
+## Syntax
+
+```sql
+DBMS_XDB_CONSTANTS.ENCODING_ISOLATIN1      
+ RETURN VARCHAR2 DETERMINISTIC;
+```
+
+**Returns:** `VARCHAR2`
+
+## Usage Notes
+
+Syntax DBMS_XDB_CONSTANTS.ENCODING_ISOLATIN1 RETURN VARCHAR2 DETERMINISTIC; Return Value 'WE8ISO8859P1'

@@ -1,0 +1,39 @@
+---
+id: 19c__DBMS_XPLAN.DISPLAY_AWR
+name: DBMS_XPLAN.DISPLAY_AWR
+object_type: plsql_function
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_XPLAN
+tags: [dbms_xplan]
+source_file: DBMS_XPLAN.html
+---
+
+# DBMS_XPLAN.DISPLAY_AWR
+
+This table function displays the contents of an execution plan stored in AWR.
+
+## Syntax
+
+```sql
+DBMS_XPLAN.DISPLAY_AWR( 
+   sql_id            IN      VARCHAR2,
+   plan_hash_value   IN      NUMBER DEFAULT NULL,
+   db_id             IN      NUMBER DEFAULT NULL,
+   format            IN      VARCHAR2 DEFAULT TYPICAL);
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| sql_id | VARCHAR2 | IN | Specifies the SQL_ID of the SQL statement. You can retrieve the appropriate value for the SQL statement of interest by querying the column SQL_ID in DBA_HIST_SQLTEXT . |
+| plan_hash_value | NUMBER | IN | Specifies the PLAN_HASH_VALUE of a SQL statement. This parameter is optional. If omitted, the table function returns all stored execution plans for a given SQL_ID . |
+| db_id | NUMBER | IN | Specifies the database_id for which the plan of the SQL statement, identified by SQL_ID should be displayed. If not supplied, the database_id of the local database is used, as shown in V$DATABASE . |
+| format | VARCHAR2 | IN | Controls the level of details for the plan. It accepts four values: BASIC : Displays the minimum information in the plan—the operation ID, the operation name and its option. TYPICAL : This is the default. Displays the most relevant information in the plan (operation id, name and option, #rows, #bytes and optimizer cost). Pruning, parallel and predicate information are only displayed when applicable. Excludes only PROJECTION , ALIAS and REMOTE SQL information (see below). SERIAL : Like TYPICAL except that the parallel information is not displayed, even if the plan executes in parallel. ALL : Maximum user level. Includes information displayed with the TYPICAL level with additional information ( PROJECTION , ALIAS and information about REMOTE SQL if the operation is distributed). For finer control on the display output, the following keywords can be added to the above four standard format options to customize their default behavior. Each keyword either represents a logical group of plan table columns (such as PARTITION ) or logical additions to the base plan table output (such as PREDICATE ). Format keywords must be separated by either a comma or a space: ROWS - if relevant, shows the number of rows estimated by the optimizer BYTES - if relevant, shows the number of bytes estimated by the optimizer COST - if relevant, shows optimizer cost information PARTITION - if relevant, shows partition pruning information PARALLEL - if relevant, shows PX information (distribution method and table queue information) PREDICATE - if relevant, shows the predicate section PROJECTION -if relevant, shows the projection section ALIAS - if relevant, shows the "Query Block Name / Object Alias" section REMOTE - if relevant, shows the information for distributed query (for example, remote from serial distribution and remote SQL) NOTE - if relevant, shows the note section of the explain plan Format keywords can be prefixed by the sign ' - ' to exclude the specified information. For example, ' -PROJECTION ' excludes projection information. |
+
+**Returns:** `UNKNOWN`
+
+## Usage Notes
+
+Note: This function is deprecated. Use DISPLAY_WORKLOAD_REPOSITORY instead. DISPLAY_AWR only works with snapshots for the local DBID, whereas DISPLAY_WORKLOAD_REPOSITORY supports all snapshots inside AWR, including remote and imported snapshots. Note: This function is deprecated. Use DISPLAY_WORKLOAD_REPOSITORY instead. DISPLAY_AWR only works with snapshots for the local DBID, whereas DISPLAY_WORKLOAD_REPOSITORY supports all snapshots inside AWR, including remote and imported snapshots. Syntax DBMS_XPLAN.DISPLAY_AWR( sql_id IN VARCHAR2, plan_hash_value IN NUMBER DEFAULT NULL, db_id IN NUMBER DEFAULT NULL, format IN VARCHAR2 DEFAULT TYPICAL); Parameters Table 215-6 DISPLAY_AWR Table Function Parameters Parameter Description sql_id Specifies the SQL_ID of the SQL statement. You can retrieve the appropriate value for the SQL statement of interest by querying the column SQL_ID in DBA_HIST_SQLTEXT . plan_hash_value Specifies the PLAN_HASH_VALUE of a SQL statement. This parameter is optional. If omitted, the table function returns all stored execution plans for a given SQL_ID . db_id Specifies the database_id for which the plan of the SQL statement, identified by SQL_ID should be displayed. If not supplied, the database_id of the local database is used, as shown in V$DATABASE . format Controls the level of details for the plan. It accepts four values: BASIC : Displays the minimum information in the plan—the operation ID, the operation name and its option. TYPICAL : This is the default. Displays the most relevant information in the plan (operation id, name and option, #rows, #bytes and optimizer cost). Pruning, parallel and predicate information are only displayed when applicable. Excludes only PROJECTION , ALIAS and REMOTE SQL information (see below). SERIAL : Like TYPICAL except that the parallel information is not displayed, even if the plan executes in parallel. ALL : Maximum user level. Includes information displayed with the TYPICAL level with additional information ( PROJECTION , ALIAS and information about REMOTE SQL if the operation is distributed). For finer control on the display output, the following keywords can be added to the above four standard format options to customize their default behavior. Each keyword either represents a logical group of plan table columns (such as PARTITION ) or logical additions to the base plan table output (such as PREDICATE ). Format keywords must be separated by either a comma or a space: ROWS - if relevant, shows the number of rows estimated by the optimizer BYTES - if relevant, shows the number of bytes estimated by the optimizer COST - if relevant, shows optimizer cost information PARTITION - if relevant, shows partition pruning information PARALLEL - if relevant, shows PX information (distribution method and table queue information) PREDICATE - if relevant, shows the predicate section PROJECTION -if relevant, shows the projection section ALIAS - if relevant, shows the "Query Block Name / Object Alias" section REMOTE - if relevant, shows the information for distributed query (for example, remote from serial distribution and remote SQL) NOTE - if relevant, shows the note section of the explain plan Format keywords can be prefixed by the sign ' - ' to exclude the specified information. For example, ' -PROJECTION ' excludes projection information. Usage Notes To use the DISPLAY_AWR functionality, the calling user must have SELECT or READ privilege on DBA_HIST_SQL_PLAN , AWR_ROOT_SQL_PLAN , AWR_PDB_SQL_PLAN , DBA_HIST_SQLTEXT , AWR_ROOT_SQLTEXT , AWR_PDB_SQLTEXT , and V$DATABASE , otherwise it shows an appropriate error message. By default, select privilege for these views is granted to the select_catalog role. The following examples show different ways of using the format parameter: Use ' BASIC ROWS ' to display basic information with the additional number of rows estimated by the optimizer. Use ' ALL -PROJECTION -NOTE ' to display everything except the projection and note sections. Use ' TYPICAL PROJECTION ' to display using the typical format with the additional projection section (which is normally excluded under the typical format). Since typical is default, using simply ' PROJECTION ' is equivalent. Use ' -BYTES -COST -PREDICATE ' to display using the typical format but excluding optimizer cost and byte estimates and the predicate section.

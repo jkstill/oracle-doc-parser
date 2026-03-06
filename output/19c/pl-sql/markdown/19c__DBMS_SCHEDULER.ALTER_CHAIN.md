@@ -1,0 +1,38 @@
+---
+id: 19c__DBMS_SCHEDULER.ALTER_CHAIN
+name: DBMS_SCHEDULER.ALTER_CHAIN
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_SCHEDULER
+tags: [dbms_scheduler]
+source_file: DBMS_SCHEDULER.html
+---
+
+# DBMS_SCHEDULER.ALTER_CHAIN
+
+This procedure alters an attribute of the specified steps of a chain. This affects all future runs of the specified steps, both in the currently running chain job and in future runs of the same chain job or other chain jobs that point to the chain.
+
+## Syntax
+
+```sql
+DBMS_SCHEDULER.ALTER_CHAIN (
+   chain_name              IN VARCHAR2,
+   step_name               IN VARCHAR2,
+   attribute               IN VARCHAR2,
+   value                   IN BOOLEAN);
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| chain_name | VARCHAR2 | IN | The name of the chain to alter |
+| step_name | VARCHAR2 | IN | The name of the step or a comma-separated list of steps to alter. This cannot be NULL . |
+| attribute | VARCHAR2 | IN | The attribute of the steps to change. Must be one of the following: ' PAUSE ' If set to TRUE for a step, after the step has run, its state changes to PAUSED (and the completed attribute remains FALSE ). If PAUSE is reset to FALSE for a paused chain step (using ALTER_RUNNING_CHAIN ), the state is set to its completion state ( SUCCEEDED , FAILED , or STOPPED ) and the completed attribute is set to TRUE . Setting PAUSE has no effect on steps that have already run. This allows execution of a chain to be suspended after the execution of certain steps. 'PAUSED_BEFORE ' If set to TRUE for a step and if any of the rule conditions that start the step are true, then its state changes to PAUSED and the step does not run. If PAUSE_BEFORE is reset to FALSE for a chain step that has paused before starting (using ALTER_RUNNING_CHAIN ), then the step starts running if any of the rule conditions that start the step are true. Setting PAUSE_BEFORE has no effect on steps that are running or have already run. This allows execution of a chain to be suspended before the execution of certain steps. ' SKIP ' If set to TRUE for a step, when the step condition is met, instead of being run, the step is treated as if it has immediately succeeded. Setting SKIP to TRUE has no effect for a step that is running, scheduled to run after a delay, or has already run. If SKIP is set TRUE for a step that PAUSE is also set for, when the step condition is met, the step immediately changes to state PAUSED . ' RESTART_ON_FAILURE ' If set to TRUE for a step and the step fails due to an application error, then the step is retried using the normal Scheduler retry mechanism (after 1 second, after 10 seconds, after 100 seconds, and so on, up to a maximum of 6 times). If all 6 retries fail (after about 30 hours), then the chain step is marked FAILED . If set to FALSE (the default), a failed chain step is immediately marked FAILED . ' RESTART_ON_RECOVERY ' If set to TRUE for a step and the step is stopped by a database shutdown, then the step is restarted when the database is recovered. If set to FALSE , and the step is stopped by a database shutdown, then the step is marked as stopped when the database is recovered and the chain continues. ' DESTINATION_NAME ' The name of an existing database destination or external destination. You can view external destination names in the view ALL_SCHEDULER_EXTERNAL_DESTS , and database destination names in the views *_SCHEDULER_DB_DESTS . You cannot specify a destination group for this attribute. This parameter is NULL by default. ' CREDENTIAL_NAME ' The credential to use when running this step. NULL by default. |
+| value | BOOLEAN) | IN | The value to set for the attribute (for a boolean attribute). |
+| char_value |  |  | The value to set for the attribute (for a character attribute). |
+
+## Usage Notes
+
+Syntax Alters the value of a boolean attribute of one or more steps: DBMS_SCHEDULER.ALTER_CHAIN ( chain_name IN VARCHAR2, step_name IN VARCHAR2, attribute IN VARCHAR2, value IN BOOLEAN); Alters the value of a character attribute of one or more steps: DBMS_SCHEDULER.ALTER_CHAIN ( chain_name IN VARCHAR2, step_name IN VARCHAR2, attribute IN VARCHAR2, char_value IN VARCHAR2); Parameters Table 151-17 ALTER_CHAIN Procedure Parameters Parameter Description chain_name The name of the chain to alter step_name The name of the step or a comma-separated list of steps to alter. This cannot be NULL . attribute The attribute of the steps to change. Must be one of the following: ' PAUSE ' If set to TRUE for a step, after the step has run, its state changes to PAUSED (and the completed attribute remains FALSE ). If PAUSE is reset to FALSE for a paused chain step (using ALTER_RUNNING_CHAIN ), the state is set to its completion state ( SUCCEEDED , FAILED , or STOPPED ) and the completed attribute is set to TRUE . Setting PAUSE has no effect on steps that have already run. This allows execution of a chain to be suspended after the execution of certain steps. 'PAUSED_BEFORE ' If set to TRUE for a step and if any of the rule conditions that start the step are true, then its state changes to PAUSED and the step does not run. If PAUSE_BEFORE is reset to FALSE for a chain step that has paused before starting (using ALTER_RUNNING_CHAIN ), then the step starts running if any of the rule conditions that start the step are true. Setting PAUSE_BEFORE has no effect on steps that are running or have already run. This allows execution of a chain to be suspended before the execution of certain steps. ' SKIP ' If set to TRUE for a step, when the step condition is met, instead of being run, the step is treated as if it has immediately succeeded. Setting SKIP to TRUE has no effect for a step that is running, scheduled to run after a delay, or has already run. If SKIP is set TRUE for a step that PAUSE is also set for, when the step condition is met, the step immediately changes to state PAUSED . ' RESTART_ON_FAILURE ' If set to TRUE for a step and the step fails due to an application error, then the step is retried using the normal Scheduler retry mechanism (after 1 second, after 10 seconds, after 100 seconds, and so on, up to a maximum of 6 times). If all 6 retries fail (after about 30 hours), then the chain step is marked FAILED . If set to FALSE (the default), a failed chain step is immediately marked FAILED . ' RESTART_ON_RECOVERY ' If set to TRUE for a step and the step is stopped by a database shutdown, then the step is restarted when the database is recovered. If set to FALSE , and the step is stopped by a database shutdown, then the step is marked as stopped when the database is recovered and the chain continues. ' DESTINATION_NAME ' The name of an existing database destination or external destination. You can view external destination names in the view ALL_SCHEDULER_EXTERNAL_DESTS , and database destination names in the views *_SCHEDULER_DB_DESTS . You cannot specify a destination group for this attribute. This parameter is NULL by default. ' CREDENTIAL_NAME ' The credential to use when running this step. NULL by default. value The value to set for the attribute (for a boolean attribute). char_value The value to set for the attribute (for a character attribute). Usage Notes Altering a chain requires ALTER privileges on the chain either by being the owner of the chain, or by having the ALTER object privilege on the chain or by having the CREATE ANY JOB system privilege.

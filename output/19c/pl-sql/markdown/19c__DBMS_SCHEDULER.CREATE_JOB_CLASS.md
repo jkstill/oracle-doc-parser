@@ -1,0 +1,42 @@
+---
+id: 19c__DBMS_SCHEDULER.CREATE_JOB_CLASS
+name: DBMS_SCHEDULER.CREATE_JOB_CLASS
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_SCHEDULER
+tags: [dbms_scheduler]
+source_file: DBMS_SCHEDULER.html
+---
+
+# DBMS_SCHEDULER.CREATE_JOB_CLASS
+
+This procedure creates a job class. Job classes are created in the SYS schema.
+
+## Syntax
+
+```sql
+DBMS_SCHEDULER.CREATE_JOB_CLASS (
+   job_class_name            IN VARCHAR2,
+   resource_consumer_group   IN VARCHAR2 DEFAULT NULL,
+   service                   IN VARCHAR2 DEFAULT NULL,
+   logging_level             IN PLS_INTEGER
+                                DEFAULT DBMS_SCHEDULER.LOGGING_RUNS,
+   log_history               IN PLS_INTEGER DEFAULT NULL,
+   comments                  IN VARCHAR2 DEFAULT NULL);
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| job_class_name | VARCHAR2 | IN | The name to assign to the job class. Job classes can only be created in the SYS schema. This attribute specifies the name of the job class and uniquely identifies the job class. The name must be unique in the SQL namespace. For example, a job class cannot have the same name as a table in a schema. |
+| resource_consumer_group | VARCHAR2 | IN | This attribute specifies the resource consumer group that his class is associated with. A resource consumer group is a set of synchronous or asynchronous sessions that are grouped together based on their processing needs. A job class has a many-to-one relationship with a resource consumer group. The resource consumer group that the job class associates with determines the resources that are allocated to the job class. If a resource consumer group is dropped, job classes associated with it are then associated with the default resource consumer group. If no resource consumer group is specified, job classes are associated with the default resource consumer group. If the specified resource consumer group does not exist when creating the job class, an error occurs. |
+| service | VARCHAR2 | IN | This attribute specifies the database service that the jobs in this class have affinity to. In an Oracle RAC environment, this means that the jobs in this class only run on those database instances that are assigned to the specific service. Note that a service can be mapped to a resource consumer group, so you can also control resources allocated to jobs by specifying a service. See DBMS_RESOURCE_MANAGER . SET_CONSUMER_GROUP_MAPPING for details. If both the resource_consumer_group and service attributes are specified, and if the service is mapped to a resource consumer group, the resource_consumer_group attribute takes precedence. If no service is specified, the job class belongs to the default service, which means it has no service affinity and any one of the database instances within the cluster might run the job. If the service that a job class belongs to is dropped, the job class will then belong to the default service. If the specified service does not exist when creating the job class, then an error occurs. |
+| logging_level | PLS_INTEGER | IN | This attribute specifies how much information is logged. The possible options are: DBMS_SCHEDULER.LOGGING_OFF No logging is performed for any jobs in this class. DBMS_SCHEDULER.LOGGING_RUNS The Scheduler writes detailed information to the job log for all runs of each job in this class. This is the default. DBMS_SCHEDULER.LOGGING_FAILED_RUNS The Scheduler logs only jobs that failed in this class. DBMS_SCHEDULER.LOGGING_FULL In addition to recording every run of a job, the Scheduler records all operations performed on all jobs in this class. Every time a job is created, enabled, disabled, altered (with SET_ATTRIBUTE ), stopped, and so, an entry is recorded in the log. |
+| log_history | PLS_INTEGER | IN | This attribute controls the number of days that job log entries for jobs in this class are retained. It helps prevent the job log from growing indiscriminately. The range of valid values is 0 through1000000. If set to 0, no history is kept. If NULL (the default), retention days are set by the log_history Scheduler attribute (set with SET_SCHEDULER_ATTRIBUTE ). |
+| comments | VARCHAR2 | IN | This attribute is for an optional comment about the job class. By default, this attribute is NULL . |
+
+## Usage Notes
+
+Syntax DBMS_SCHEDULER.CREATE_JOB_CLASS ( job_class_name IN VARCHAR2, resource_consumer_group IN VARCHAR2 DEFAULT NULL, service IN VARCHAR2 DEFAULT NULL, logging_level IN PLS_INTEGER DEFAULT DBMS_SCHEDULER.LOGGING_RUNS, log_history IN PLS_INTEGER DEFAULT NULL, comments IN VARCHAR2 DEFAULT NULL); Parameters Table 151-29 CREATE_JOB_CLASS Procedure Parameters Parameter Description job_class_name The name to assign to the job class. Job classes can only be created in the SYS schema. This attribute specifies the name of the job class and uniquely identifies the job class. The name must be unique in the SQL namespace. For example, a job class cannot have the same name as a table in a schema. resource_consumer_group This attribute specifies the resource consumer group that his class is associated with. A resource consumer group is a set of synchronous or asynchronous sessions that are grouped together based on their processing needs. A job class has a many-to-one relationship with a resource consumer group. The resource consumer group that the job class associates with determines the resources that are allocated to the job class. If a resource consumer group is dropped, job classes associated with it are then associated with the default resource consumer group. If no resource consumer group is specified, job classes are associated with the default resource consumer group. If the specified resource consumer group does not exist when creating the job class, an error occurs. service This attribute specifies the database service that the jobs in this class have affinity to. In an Oracle RAC environment, this means that the jobs in this class only run on those database instances that are assigned to the specific service. Note that a service can be mapped to a resource consumer group, so you can also control resources allocated to jobs by specifying a service. See DBMS_RESOURCE_MANAGER . SET_CONSUMER_GROUP_MAPPING for details. If both the resource_consumer_group and service attributes are specified, and if the service is mapped to a resource consumer group, the resource_consumer_group attribute takes precedence. If no service is specified, the job class belongs to the default service, which means it has no service affinity and any one of the database instances within the cluster might run the job. If the service that a job class belongs to is dropped, the job class will then belong to the default service. If the specified service does not exist when creating the job class, then an error occurs. logging_level This attribute specifies how much information is logged. The possible options are: DBMS_SCHEDULER.LOGGING_OFF No logging is performed for any jobs in this class. DBMS_SCHEDULER.LOGGING_RUNS The Scheduler writes detailed information to the job log for all runs of each job in this class. This is the default. DBMS_SCHEDULER.LOGGING_FAILED_RUNS The Scheduler logs only jobs that failed in this class. DBMS_SCHEDULER.LOGGING_FULL In addition to recording every run of a job, the Scheduler records all operations performed on all jobs in this class. Every time a job is created, enabled, disabled, altered (with SET_ATTRIBUTE ), stopped, and so, an entry is recorded in the log. log_history This attribute controls the number of days that job log entries for jobs in this class are retained. It helps prevent the job log from growing indiscriminately. The range of valid values is 0 through1000000. If set to 0, no history is kept. If NULL (the default), retention days are set by the log_history Scheduler attribute (set with SET_SCHEDULER_ATTRIBUTE ). comments This attribute is for an optional comment about the job class. By default, this attribute is NULL . Usage Notes For users to create jobs that belong to a job class, the job owner must have EXECUTE privileges on the job class. Therefore, after the job class has been created, EXECUTE privileges must be granted on the job class so that users create jobs belonging to that class. You can also grant the EXECUTE privilege to a role. Creating a job class requires the MANAGE SCHEDULER system privilege.

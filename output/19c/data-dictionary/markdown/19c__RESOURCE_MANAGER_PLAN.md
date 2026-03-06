@@ -1,0 +1,17 @@
+---
+id: 19c__RESOURCE_MANAGER_PLAN
+name: RESOURCE_MANAGER_PLAN
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: general
+source_file: RESOURCE_MANAGER_PLAN.html
+---
+
+# RESOURCE_MANAGER_PLAN
+
+RESOURCE_MANAGER_PLAN specifies the resource plan to use for a database (CDB or non-CDB).
+
+## Usage Notes
+
+Previous Next JavaScript must be enabled to correctly display this content In the root for a CDB, RESOURCE_MANAGER_PLAN specifies the CDB resource plan. A CDB resource plan allocates resources among PDBs. A CDB resource plan is created using DBMS_RESOURCE_MANAGER.CREATE_CDB_PLAN and CREATE_CDB_PLAN_DIRECTIVE . See Also: Oracle Multitenant Administrator's Guide for more information about using DBMS_RESOURCE_MANAGER.CREATE_CDB_PLAN and DBMS_RESOURCE_MANAGER.CREATE_CDB_PLAN_DIRECTIVE Oracle Database PL/SQL Packages and Types Reference for more information about the CREATE_CDB_PLAN procedure and CREATE_CDB_PLAN_DIRECTIVE procedure for the DBMS_RESOURCE_MANAGER package A session must be root to change the value of RESOURCE_MANAGER_PLAN for a CDB using the ALTER SYSTEM statement. For example, to enable and disable a CDB resource plan: SQL> ALTER SYSTEM SET RESOURCE_MANAGER_PLAN = CDB_resource_plan_name ; SQL> ALTER SYSTEM SET RESOURCE_MANAGER_PLAN = ''; In a PDB, RESOURCE_MANAGER_PLAN specifies the PDB resource plan to use for the PDB. A session must be in the PDB to enable or disable a PDB resource plan for that PDB. For example, to enable and disable a PDB resource plan: SQL> ALTER SYSTEM SET RESOURCE_MANAGER_PLAN = PDB_resource_plan_name ; SQL> ALTER SYSTEM SET RESOURCE_MANAGER_PLAN = ''; In a PDB, the PDB resource plan has some restrictions compared to the resource plan of a non-CDB. The following restrictions apply to PDB resource plans: A PDB resource plan cannot have subplans. A PDB resource plan can have a maximum of eight consumer groups. A PDB resource plan cannot have a multiple-level scheduling policy. To enforce certain PDB resource plan policies, policies regarding resource allocation among PDBs should exist in the CDB resource plan. Without a CDB resource plan, certain PDB resource plan policies will not be enforced. If a PDB resource plan contains CPU or parallel statement queuing directives and a CDB resource plan is not specified, then Resource Manager will automatically enable the DEFAULT_CDB_PLAN plan. To prevent this behavior, set the RESOURCE_MANAGER_PLAN parameter at the root level to ORA$INTERNAL_CDB_PLAN . Note: See Oracle Multitenant Administrator's Guide for information on CPU, I/O bandwidth, and parallel execution servers requirements in CDB resource plans, and for a description of the results in the PDB resource plans when those requirements are not met. See Also: Oracle Multitenant Administrator's Guide for more information about using DBMS_RESOURCE_MANAGER.CREATE_CDB_PLAN and DBMS_RESOURCE_MANAGER.CREATE_CDB_PLAN_DIRECTIVE Oracle Database PL/SQL Packages and Types Reference for more information about the CREATE_CDB_PLAN procedure and CREATE_CDB_PLAN_DIRECTIVE procedure for the DBMS_RESOURCE_MANAGER package Note: See Oracle Multitenant Administrator's Guide for information on CPU, I/O bandwidth, and parallel execution servers requirements in CDB resource plans, and for a description of the results in the PDB resource plans when those requirements are not met. In a Non-CDB

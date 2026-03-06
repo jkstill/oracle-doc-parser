@@ -1,0 +1,45 @@
+---
+id: 19c__DBMS_LOB.LOADCLOBFROMFILE
+name: DBMS_LOB.LOADCLOBFROMFILE
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_LOB
+tags: [dbms_lob]
+source_file: DBMS_LOB.html
+---
+
+# DBMS_LOB.LOADCLOBFROMFILE
+
+This procedure loads data from a BFILE to an internal CLOB/NCLOB with necessary character set conversion and returns the new offsets.
+
+## Syntax
+
+```sql
+DBMS_LOB.LOADCLOBFROMFILE (
+   dest_lob       IN OUT NOCOPY   NOCOPY CLOB CHARACTER SET ANY_CS, 
+   src_bfile      IN              BFILE, 
+   amount         IN              INTEGER, 
+   dest_offset    IN OUT          INTEGER, 
+   src_offset     IN OUT          INTEGER,
+   bfile_csid     IN              NUMBER,
+   lang_context   IN OUT          INTEGER,
+   warning        OUT             INTEGER);
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| dest_lob | NOCOPY | IN OUT | CLOB/NCLOB locator of the target for the load. |
+| src_bfile | BFILE | IN | BFILE locator of the source for the load. |
+| amount | INTEGER | IN | Number of bytes to load from the BFILE . Use DBMS_LOB . LOBMAXSIZE of load until the end of the BFILE . |
+| dest_offset | INTEGER | IN OUT | (IN) Offset in characters in the destination CLOB (origin: 1) for the start of the write. (OUT) T he new offset in characters right after the end of this load, which is also where the next load should start. It always points to the beginning of the first complete character after the end of load. If the last character is not complete, offset goes back to the beginning of the partial character. |
+| src_offset | INTEGER | IN OUT | (IN) Offset in bytes in the source BFILE (origin: 1) for the start of the read .(OUT) Offset in bytes in the source BFILE right after the end of this read, which is also where the next read should begin. |
+| bfile_csid | NUMBER | IN | Character set id of the source (BFILE ) file. |
+| lang_context | INTEGER | IN OUT | (IN) La nguage context, such as shift status, for the current load. (OUT) The language context at the time when the current load stopped, and what the next load should be using if continuing loading from the same source. This information is returned to the user so that they can use it for the continuous load without losing or misinterpreting any source data. For the very first load or if do not care, simply use the default 0. The details of this language context is hidden from the user. One does not need to know what it is or what's in it in order to make the call |
+| warning | INTEGER) | OUT | (OUT) Warning message. This indicates something abnormal happened during the loading. It may or may not be caused by the user's mistake. The loading is completed as required, and it's up to the user to check the warning message. Currently, the only possible warning is the inconvertible character. This happens when the character in the source cannot be properly converted to a character in destination, and the default replacement character (for example, '?') is used in place. The message is defined the constant value DBMS_LOB.WARN_INCONVERTIBLE_CHAR . |
+
+## Usage Notes
+
+Syntax DBMS_LOB.LOADCLOBFROMFILE ( dest_lob IN OUT NOCOPY NOCOPY CLOB CHARACTER SET ANY_CS, src_bfile IN BFILE, amount IN INTEGER, dest_offset IN OUT INTEGER, src_offset IN OUT INTEGER, bfile_csid IN NUMBER, lang_context IN OUT INTEGER, warning OUT INTEGER); Parameters Table 99-77 LOADCLOBFROMFILE Procedure Parameters Parameter Description dest_lob CLOB/NCLOB locator of the target for the load. src_bfile BFILE locator of the source for the load. amount Number of bytes to load from the BFILE . Use DBMS_LOB . LOBMAXSIZE of load until the end of the BFILE . dest_offset (IN) Offset in characters in the destination CLOB (origin: 1) for the start of the write. (OUT) T he new offset in characters right after the end of this load, which is also where the next load should start. It always points to the beginning of the first complete character after the end of load. If the last character is not complete, offset goes back to the beginning of the partial character. src_offset (IN) Offset in bytes in the source BFILE (origin: 1) for the start of the read .(OUT) Offset in bytes in the source BFILE right after the end of this read, which is also where the next read should begin. bfile_csid Character set id of the source (BFILE ) file. lang_context (IN) La nguage context, such as shift status, for the current load. (OUT) The language context at the time when the current load stopped, and what the next load should be using if continuing loading from the same source. This information is returned to the user so that they can use it for the continuous load without losing or misinterpreting any source data. For the very first load or if do not care, simply use the default 0. The details of this language context is hidden from the user. One does not need to know what it is or what's in it in order to make the call warning (OUT) Warning message. This indicates something abnormal happened during the loading. It may or may not be caused by the user's mistake. The loading is completed as required, and it's up to the user to check the warning message. Currently, the only possible warning is the inconvertible character. This happens when the character in the source cannot be properly converted to a character in destination, and the default replacement character (for example, '?') is used in place. The message is defined the constant value DBMS_LOB.WARN_INCONVERTIBLE_CHAR . Usage Notes You can specify the offsets for both the source and destination LOBs, and the number of bytes to copy from the source BFILE . The amount and src_offset , because they refer to the BFILE , are in terms of bytes, and the dest_offset is in characters for CLOBs . If the offset you specify in the destination LOB is beyond the end of the data currently in this LOB, then zero-byte fillers or spaces are inserted in the destination CLOB . If the offset is less than the current length of the destination LOB, then existing data is overwritten. There is an error if the input amount plus offset exceeds the length of the data in the BFILE (unless the amount specified is LOBMAXSIZE which you can specify to continue loading until the end of the BFILE is reached). Note the following requirements: The destination character set is always the same as the database character set in the case of CLOB and national character set in the case of NCLOB . csid=0 indicates the default behavior that uses database csid for CLOB and national csid for NCLOB in the place of source csid . Conversion is still necessary if it is of varying width It is not mandatory that you wrap the LOB operation inside the OPEN/CLOSE operations. If you did not open the LOB before performing the operation, the functional and domain indexes on the LOB column are updated during the call. However, if you opened the LOB before performing the operation, you must close it before you commit the transaction. When an internal LOB is closed, it updates the functional and domain indexes on the LOB column. If you do not wrap the LOB operation inside the OPEN/CLOSE , the functional and domain indexes are updated each time you write to the LOB. This can adversely affect performance. Therefore, it is recommended that you enclose write operations to the LOB within the OPEN or CLOSE statement. The source BFILE can contain data in the Unicode character set. The Unicode standard defines many encoding schemes that provide mappings from Unicode characters to sequences of bytes. Table 99-78 lists Unicode encodings schemes supported by this subprogram. Table 99-78 Supported Unicode Encoding Schemes Encoding Scheme Oracle Name bfile_csid Value UTF-8 AL32UTF8 873 UTF-16BE AL16UTF16 2000 UTF-16LE AL16UTF16LE 2002 CESU-8 UTF8 871 UTF-EBCDIC UTFE 872 UTF-16 UTF16 1000 All three UTF-16 encoding schemes encode Unicode characters as 2-byte unsigned integers. Integers can be stored in big-endian or in little-endian byte order. The UTF-16BE encoding scheme defines big-endian data. The UTF-16LE scheme defines little-endian data. The UTF-16 scheme requires that the source BFILE contains the Byte Order Mark (BOM) character in the first two bytes to define the byte order. The BOM code is 0xFEFF . If the code is stored as {0xFE,0xFF} , the data is interpreted as big-endian. If it is stored as {0xFF,0xFE} , the data is interpreted as little-endian. In UTF-8 and in CESU-8 encodings the Byte Order Mark is stored as {0xEF,0xBB, 0xBF} . With any of the Unicode encodings, the corresponding BOM sequence at the beginning of the file is recognized and not loaded into the destination LOB. Constants Here is a summary of the constants and the suggested values that can be used. Constants defined in DBMSLOB.SQL lobmaxsize CONSTANT INTEGER := 18446744073709551615; warn_inconvertible_char CONSTANT INTEGER := 1; default_csid CONSTANT INTEGER := 0; default_lang_ctx CONSTANT INTEGER := 0; no_warning CONSTANT INTEGER := 0;

@@ -1,0 +1,27 @@
+---
+id: 19c__DBMS_CUBE.UPGRADING
+name: DBMS_CUBE.UPGRADING
+object_type: plsql_subprogram
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_CUBE
+tags: [dbms_cube]
+source_file: DBMS_CUBE.html
+---
+
+# DBMS_CUBE.UPGRADING
+
+You can upgrade an OLAP 10 g analytic workspace to OLAP 12 c by saving the OLAP 10 g objects as an XML template and importing the XML into a different schema. The original analytic workspace remains accessible and unchanged by the upgrade process.
+
+## Syntax
+
+```sql
+CREATE TABLE table_name (
+          source_id    VARCHAR2(300),
+          new_name     VARCHAR2(30),
+          object_type  VARCHAR2(30));
+```
+
+## Usage Notes
+
+Oracle OLAP metadata is the same in OLAP 11 g and OLAP 12 c so you do not need to upgrade an OLAP 11 g analytic workspace to OLAP 12 c . This topic describes upgrading an Oracle OLAP 10 g analytic workspace to OLAP 12 c . Tip: Oracle recommends using Analytic Workspace Manager for performing upgrades. See Upgrading Metadata From Oracle OLAP 10 g in Oracle OLAP User’s Guide . These subprograms in DBMS_CUBE support the upgrade process: CREATE_EXPORT_OPTIONS Procedure CREATE_IMPORT_OPTIONS Procedure EXPORT_XML Procedure EXPORT_XML_TO_FILE Procedure IMPORT_XML Procedure INITIALIZE_CUBE_UPGRADE Procedure UPGRADE_AW Procedure Tip: Oracle recommends using Analytic Workspace Manager for performing upgrades. See Upgrading Metadata From Oracle OLAP 10 g in Oracle OLAP User’s Guide . Prerequisites: The OLAP 10 g analytic workspace can use OLAP standard form metadata. Customizations to the OLAP 10 g analytic workspace may not be exported to the XML template. You must re-create them in OLAP 12 c . The original relational source data must be available to load into the new analytic workspace. If the data is in a different schema or the table names are different, then you must remap the dimensional objects to the new relational sources after the upgrade. You can create the OLAP 12 c analytic workspace in the same schema as the OLAP 10 g analytic workspace. However, if you prefer to create it in a different schema, then create a new user with the following privileges: SELECT or READ privileges on the OLAP 10 g analytic workspace ( GRANT SELECT ON schema .AW$ analytic_workspace ). SELECT or READ privileges on all database tables and views that contain the source data for the OLAP 10 g analytic workspace. Appropriate privileges for an OLAP administrator. Same default tablespace as the Oracle 10 g user. See the Oracle OLAP User's Guide . Correcting Naming Conflicts The namespaces are different in OLAP 10 g than those in OLAP 12 c . For a successful upgrade, you must identify any 10 g object names that are used multiple times under the 12 c naming rules and provide unique names for them. The following namespaces control the uniqueness of OLAP object names in Oracle 12 c : Schema : The names of cubes, dimensions, and measure folders must be unique within a schema. They cannot conflict with the names of tables, views, indexes, relational dimensions, or any other first class objects. However, these OLAP 12 c object names do not need to be distinct from 10 g object names, because they are in different namespaces. Cube : The names of measures must be unique within a cube. Dimension : The names of hierarchies, levels, and attributes must be unique within a dimension. For example, a dimension cannot have a hierarchy named Customers and a level named Customers. You can use an initialization table and a rename table to rename objects in the upgraded 12 c analytic workspace. Initialization Table The INITIALIZE_CUBE_UPGRADE procedure identifies ambiguous names under the OLAP 12 c naming rules. For example, a 10 g dimension might have a hierarchy and a level with the same name. Because hierarchies and levels are in the same 12 c namespace, the name is not unique in 12 c ; to a 12 c client, the hierarchy and the level cannot be differentiated by name. INITIALIZE_CUBE_UPGRADE creates and populates a table named CUBE_UPGRADE_INFO with unique names for these levels, hierarchies, and attributes. By using the unique names provided in the table, a 12 c client can browse the OLAP 12 c metadata. You cannot attach an OLAP 12 c client to the analytic workspace or perform an upgrade without a CUBE_UPGRADE_INFO table, if the 10 g metadata contains ambiguous names. You can edit CUBE_UPGRADE_INFO to change the default unique names to names of your choosing. You can also add rows to change the names of any other objects. When using an 12 c client, you see the new object names. When using an 10 g client, you see the original names. However, the INITIALIZE_CUBE_UPGRADE procedure overwrites this table, so you may prefer to enter customizations in a rename table. During an upgrade from OLAP 10 g, the unique object names in CUBE_UPGRADE_INFO are used as the names of 12 c objects in the new analytic workspace. However, INITIALIZE_CUBE_UPGRADE does not automatically provide unique names for cubes, dimensions, and measure folders. To complete an upgrade, you must assure that these objects have unique names within the 12 c namespace. You can provide these objects with new names in the CUBE_UPGRADE_INFO table or in a rename table. OLAP 12 c clients automatically use CUBE_UPGRADE_INFO when it exists in the same schema as the OLAP 10 g analytic workspace. See Also: " INITIALIZE_CUBE_UPGRADE Procedure "

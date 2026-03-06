@@ -1,0 +1,37 @@
+---
+id: 19c__DBMS_WORKLOAD_REPLAY.PROCESS_CAPTURE
+name: DBMS_WORKLOAD_REPLAY.PROCESS_CAPTURE
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_WORKLOAD_REPLAY
+tags: [dbms_workload_replay]
+source_file: DBMS_WORKLOAD_REPLAY.html
+---
+
+# DBMS_WORKLOAD_REPLAY.PROCESS_CAPTURE
+
+This procedure processes the workload capture found in capture_dir in place.
+
+## Syntax
+
+```sql
+DBMS_WORKLOAD_REPLAY.PROCESS_CAPTURE (
+   capture_dir            IN   VARCHAR2,
+   parallel_level         IN   NUMBER DEFAULT NULL,
+   synchronization        IN   VARCHAR2 DEFAULT 'SCN',
+   plsql_mode             IN   VARCHAR2 DEFAULT 'TOP_LEVEL');
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| capture_dir | VARCHAR2 | IN | (Mandatory) Name of the workload capture directory object (case sensitive). The directory object must point to a valid OS directory that has the appropriate permissions. New files are added to this directory. |
+| parallel_level | NUMBER | IN | Number of Oracle processes used to process the capture in parallel. The NULL default value will auto-compute the parallelism level, whereas a value of 1 will enforce serial execution. |
+| synchronization | VARCHAR2 | IN | Determines the synchronization mode that the user will be able to use for replay: ‘TIME’ — When ‘TIME’ is selected, the replay can use ‘TIME’ synchronization mode only. When ‘TIME’ synchronization mode is used for replay, the synchronization will be based on the time the action took place during capture (clock-based time). ‘SCN’ — When ‘SCN’ is selected, the replay can use the ‘TIME’ or ‘SCN’ synchronization mode. This is the default. When ‘SCN’ synchronization mode is used for replay, the synchronization will be based on the capture-time commits; the commit order will be preserved during replay. This is the default mode. ‘OBJECT_ID’ — When ‘OBJECT_ID’ is selected, replay can use the ‘TIME’ , ‘SCN’ , or ‘OBJECT_ID’ synchronization mode. When ‘OBJECT_ID’ synchronization mode is used for replay, every replayed action will be executed only after the relevant commits have finished execution. The relevant commits are those that were issued before the given action in the captured workload and that modified at least one of the database objects the given action is referencing (either implicitly or explicitly). This synchronization mode makes sure that any replay action will see the same data that the action saw during capture, but allows greater concurrency for the actions that do not touch the same objects/tables. This synchronization mode is deprecated. |
+| plsql_mode | VARCHAR2 | IN | Specifies the processing mode for PL/SQL: 'TOP_LEVEL' — metadata is generated for top-level PL/SQL calls only; 'TOP_LEVEL' will be the only option for replay. ‘EXTENDED’ — metadata is generated for both top-level PL/SQL calls and the SQL called from PL/SQL. A new directory ppe_X.X.X.X (where the Xs represent the current Oracle version) is created under the capture root directory. Capture must have been done with this same value for the plsql_mode parameter. Replay can use either 'TOP_LEVEL' or ‘EXTENDED’ . |
+
+## Usage Notes
+
+Syntax DBMS_WORKLOAD_REPLAY.PROCESS_CAPTURE ( capture_dir IN VARCHAR2, parallel_level IN NUMBER DEFAULT NULL, synchronization IN VARCHAR2 DEFAULT 'SCN', plsql_mode IN VARCHAR2 DEFAULT 'TOP_LEVEL'); Parameters Table 191-26 PROCESS_CAPTURE Procedure Parameters Parameter Description capture_dir (Mandatory) Name of the workload capture directory object (case sensitive). The directory object must point to a valid OS directory that has the appropriate permissions. New files are added to this directory. parallel_level Number of Oracle processes used to process the capture in parallel. The NULL default value will auto-compute the parallelism level, whereas a value of 1 will enforce serial execution. synchronization Determines the synchronization mode that the user will be able to use for replay: ‘TIME’ — When ‘TIME’ is selected, the replay can use ‘TIME’ synchronization mode only. When ‘TIME’ synchronization mode is used for replay, the synchronization will be based on the time the action took place during capture (clock-based time). ‘SCN’ — When ‘SCN’ is selected, the replay can use the ‘TIME’ or ‘SCN’ synchronization mode. This is the default. When ‘SCN’ synchronization mode is used for replay, the synchronization will be based on the capture-time commits; the commit order will be preserved during replay. This is the default mode. ‘OBJECT_ID’ — When ‘OBJECT_ID’ is selected, replay can use the ‘TIME’ , ‘SCN’ , or ‘OBJECT_ID’ synchronization mode. When ‘OBJECT_ID’ synchronization mode is used for replay, every replayed action will be executed only after the relevant commits have finished execution. The relevant commits are those that were issued before the given action in the captured workload and that modified at least one of the database objects the given action is referencing (either implicitly or explicitly). This synchronization mode makes sure that any replay action will see the same data that the action saw during capture, but allows greater concurrency for the actions that do not touch the same objects/tables. This synchronization mode is deprecated. plsql_mode Specifies the processing mode for PL/SQL: 'TOP_LEVEL' — metadata is generated for top-level PL/SQL calls only; 'TOP_LEVEL' will be the only option for replay. ‘EXTENDED’ — metadata is generated for both top-level PL/SQL calls and the SQL called from PL/SQL. A new directory ppe_X.X.X.X (where the Xs represent the current Oracle version) is created under the capture root directory. Capture must have been done with this same value for the plsql_mode parameter. Replay can use either 'TOP_LEVEL' or ‘EXTENDED’ . Usage Notes This subprogram analyzes the workload capture found in the capture_dir and creates new workload replay specific metadata files that are required to replay the given workload capture. It only creates new files and does not modify any files that were originally created during the workload capture. Therefore, this procedure can be run multiple times on the same capture directory, such as when the procedure encounters unexpected errors or is cancelled by the user. Once this procedure runs successfully, the capture_dir can be used as input to the INITIALIZE_REPLAY Procedure in order to replay the captured workload present in capture_dir . Before a workload capture can be replayed in a particular database version, the capture must be processed using PROCESS_CAPTURE in the same database version. Once created, a processed workload capture can be used to replay the captured workload multiple times in the same database version. For example, suppose workload "foo" was captured in rec_dir in Oracle database version 10.2.0.5. In order to replay the workload "foo" in version 11.1.0.1 the workload must be processed in version 11.1.0.1. The following procedure must be executed in an 11.1.0.1 database in order to process the capture directory rec_dir : DBMS_WORKLOAD_REPLAY.PROCESS_CAPTURE('rec_dir'); Now, rec_dir contains a valid 11.1.0.1 processed workload capture that can be used to replay the workload "foo" in 11.1.0.1 databases as many times as required. For encrypted capture, the PROCESS_CAPTURE procedure relies on Oracle wallet. The identifier is oracle.rat.database_replay.encryption (case-sensitive).

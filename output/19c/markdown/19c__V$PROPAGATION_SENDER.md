@@ -1,0 +1,50 @@
+---
+id: 19c__V$PROPAGATION_SENDER
+name: V$PROPAGATION_SENDER
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: general
+tags: [dynamic_performance]
+source_file: V-PROPAGATION_SENDER.html
+---
+
+# V$PROPAGATION_SENDER
+
+Queue identifier of the queue
+
+## Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| QUEUE_ID | NUMBER |  |
+| QUEUE_SCHEMA | VARCHAR2(128) |  |
+| QUEUE_NAME | VARCHAR2(128) |  |
+| DST_QUEUE_SCHEMA | VARCHAR2(128) |  |
+| DST_QUEUE_NAME | VARCHAR2(128) |  |
+| STARTUP_TIME | DATE |  |
+| DBLINK | VARCHAR2(395) |  |
+| HIGH_WATER_MARK | NUMBER |  |
+| ACKNOWLEDGEMENT | NUMBER |  |
+| SCHEDULE_STATUS | VARCHAR2(128) |  |
+| TOTAL_MSGS | NUMBER |  |
+| TOTAL_BYTES | NUMBER |  |
+| ELAPSED_DEQUEUE_TIME | NUMBER |  |
+| ELAPSED_PICKLE_TIME | NUMBER |  |
+| ELAPSED_PROPAGATION_TIME | NUMBER |  |
+| ELAPSED_RULE_TIME | NUMBER |  |
+| MAX_NUM_PER_WIN | NUMBER |  |
+| MAX_SIZE | NUMBER |  |
+| LAST_MSG_LATENCY | NUMBER |  |
+| LAST_MSG_ENQUEUE_TIME | TIMESTAMP(6) |  |
+| LAST_MSG_PROPAGATION_TIME | TIMESTAMP(6) |  |
+| LAST_LCR_LATENCY | NUMBER |  |
+| LAST_LCR_CREATION_TIME | DATE |  |
+| LAST_LCR_PROPAGATION_TIME | DATE |  |
+| DST_DATABASE_NAME | VARCHAR2(395) |  |
+| SESSION_ID | NUMBER |  |
+| SERIAL# | NUMBER |  |
+| SPID | VARCHAR2(24) |  |
+| PROPAGATION_NAME | VARCHAR2(128) |  |
+| STATE | VARCHAR2(128) |  |
+| CON_ID | NUMBER |  |

@@ -1,0 +1,35 @@
+---
+id: 19c__DBMS_APPLY_ADM.EXECUTE_ERROR
+name: DBMS_APPLY_ADM.EXECUTE_ERROR
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_APPLY_ADM
+tags: [dbms_apply_adm]
+source_file: DBMS_APPLY_ADM.html
+---
+
+# DBMS_APPLY_ADM.EXECUTE_ERROR
+
+This procedure re-executes the specified error transaction in the error queue.
+
+## Syntax
+
+```sql
+DBMS_APPLY_ADM.EXECUTE_ERROR(
+   local_transaction_id  IN  VARCHAR2,
+   execute_as_user       IN  BOOLEAN   DEFAULT FALSE,
+   user_procedure        IN  VARCHAR2  DEFAULT NULL);
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| local_transaction_id | VARCHAR2 | IN | The identification number of the error transaction to execute. If the specified transaction does not exist in the error queue, then an error is raised. |
+| execute_as_user | BOOLEAN | IN | If TRUE , then the procedure re-executes the transaction in the security context of the current user. If FALSE , then the procedure re-executes the transaction in the security context of the original receiver of the transaction. The original receiver is the user who was processing the transaction when the error was raised. The DBA_APPLY_ERROR data dictionary view lists the original receiver for each error transaction. The user who executes the transaction must have privileges to perform DML and DDL changes on the apply objects and to run any apply handlers. This user must also have dequeue privileges on the queue used by the apply component. |
+| user_procedure | VARCHAR2 | IN | A user-defined procedure that modifies the error transaction so that it can be successfully executed. Specify NULL to execute the error transaction without running a user procedure. See Also: " Usage Notes " for more information about the user procedure |
+
+## Usage Notes
+
+Syntax DBMS_APPLY_ADM.EXECUTE_ERROR( local_transaction_id IN VARCHAR2, execute_as_user IN BOOLEAN DEFAULT FALSE, user_procedure IN VARCHAR2 DEFAULT NULL); Parameters Table 21-12 EXECUTE_ERROR Procedure Parameters Parameter Description local_transaction_id The identification number of the error transaction to execute. If the specified transaction does not exist in the error queue, then an error is raised. execute_as_user If TRUE , then the procedure re-executes the transaction in the security context of the current user. If FALSE , then the procedure re-executes the transaction in the security context of the original receiver of the transaction. The original receiver is the user who was processing the transaction when the error was raised. The DBA_APPLY_ERROR data dictionary view lists the original receiver for each error transaction. The user who executes the transaction must have privileges to perform DML and DDL changes on the apply objects and to run any apply handlers. This user must also have dequeue privileges on the queue used by the apply component. user_procedure A user-defined procedure that modifies the error transaction so that it can be successfully executed. Specify NULL to execute the error transaction without running a user procedure. See Also: " Usage Notes " for more information about the user procedure Usage Notes The following usage notes apply to this procedure: The User Procedure The EXECUTE_ERROR Procedure and XStream Outbound Servers The EXECUTE_ERROR Procedure and XStream Inbound Servers The User Procedure You must specify the full procedure name for the user_procedure parameter in one of the following forms: [ schema_name .] package_name.procedure_name [ schema_name .] procedure_name If the procedure is in a package, then the package_name must be specified. The user who invokes the EXECUTE_ERROR procedure must have EXECUTE privilege on the specified procedure. Also, if the schema_name is not specified, then the user who invokes the EXECUTE_ERROR procedure is the default. For example, suppose the procedure_name has the following properties: strmadmin is the schema_name . fix_errors is the package_name . fix_hr_errors is the procedure_name . In this case, specify the following: strmadmin.fix_errors.fix_hr_errors The procedure you create for error handling must have the following signature: PROCEDURE user_procedure ( in_anydata IN ANYDATA, error_record IN DBA_APPLY_ERROR%ROWTYPE, error_message_number IN NUMBER, messaging_default_processing IN OUT BOOLEAN, out_anydata OUT ANYDATA); The user procedure has the following parameters: in_anydata : The ANYDATA encapsulation of a message that the apply component passes to the procedure. A single transaction can include multiple messages. A message can be a row logical change record (row LCR), a DDL logical change record (DDL LCR), or a user message. error_record : The row in the DBA_APPLY_ERROR data dictionary view that identifies the transaction error_message_number : The message number of the ANYDATA object in the in_anydata parameter, starting at 1 messaging_default_processing : If TRUE , then the apply component continues processing the message in the in_anydata parameter, which can include executing DML or DDL statements and invoking apply handlers. If FALSE , then the apply component skips processing the message in the in_anydata parameter and moves on to the next message in the in_anydata parameter. out_anydata : The ANYDATA object processed by the user procedure and used by the apply component if messaging_default_processing is TRUE . If an LCR is executed using the EXECUTE LCR member procedure in the user procedure, then the LCR is executed directly, and the messaging_default_processing parameter should be set to FALSE . In this case, the LCR is not passed to any apply handlers. Processing an error transaction with a user procedure results in one of the following outcomes: The user procedure modifies the transaction so that it can be executed successfully. The user procedure fails to make the necessary modifications, and an error is raised when transaction execution is attempted. In this case, the transaction is rolled back and remains in the error queue. The following restrictions apply to the user procedure: Do not execute COMMIT or ROLLBACK statements. Doing so can endanger the consistency of the transaction. Do not modify LONG , LONG RAW or LOB column data in an LCR. If the ANYDATA object in the in_anydata parameter is a row LCR, then the out_anydata parameter must be row LCR if the messaging_default_processing parameter is set to TRUE . If the ANYDATA object in the in_anydata parameter is a DDL LCR, then the out_anydata parameter must be DDL LCR if the messaging_default_processing parameter is set to TRUE . The user who runs the user procedure must have the SELECT or READ privilege on the DBA_APPLY_ERROR data dictionary view. Note: LCRs containing transactional directives, such as COMMIT and ROLLBACK , are not passed to the user procedure. Note: LCRs containing transactional directives, such as COMMIT and ROLLBACK , are not passed to the user procedure.

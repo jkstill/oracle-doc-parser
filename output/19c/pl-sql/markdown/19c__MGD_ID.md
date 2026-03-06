@@ -1,0 +1,40 @@
+---
+id: 19c__MGD_ID
+name: MGD_ID
+object_type: plsql_function
+oracle_version: 19c
+doc_type: plsql_packages
+parent: MGD_ID
+tags: [mgd_id]
+source_file: MGD_ID-Package-Types.html
+---
+
+# MGD_ID
+
+This constructor function constructs an identity code type object, MGD_ID . The constructor function is overloaded. The different functionality of each form of syntax is presented along with the definitions.
+
+## Syntax
+
+```sql
+MGD_ID (
+   category_id      IN VARCHAR2,
+   components       IN MGD_ID_COMPONENT_VARRAY)
+ RETURN SELF AS RESULT DETERMINISTIC;
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| category_id | VARCHAR2 | IN | Category identifier |
+| components | MGD_ID_COMPONENT_VARRAY) | IN | List of component name value pairs |
+| category_name |  |  | Category name, such as EPC |
+| category_version |  |  | Category version. If NULL , the latest version for the specified category name will be used. |
+| identifier |  |  | Identifier string in any format of an encoding scheme in the specified category. For example, for SGTIN-96 encoding, the identifier can be in the format of BINARY , PURE_IDENTITY , TAG_ENCODING , or LEGACY . Express this identifier as a string according to the appropriate grammar or pattern in the tag data translation (TDT) markup file. For example, a binary string consisting of characters 0 and 1 , a URI (either tag-encoding or pure-identity formats), or a serialized legacy code expressed as a string format for input, such as gtin=00037000302414;serial=10419703 for a SGTIN coding scheme. |
+| parameter_list |  |  | List of additional parameters required to create the object in the representation. The list is expressed as a parameter string containing key-value pairs, separated by the semicolon (;) as a delimiter between key-value pairs. For example, for a GTIN code, the parameter string would look as follows: filter=3;companyprefixlength=7;taglength=96 |
+
+**Returns:** `SELF`
+
+## Usage Notes
+
+Syntax Constructs an MGD_ID object type based on the category ID and a list of components. MGD_ID ( category_id IN VARCHAR2, components IN MGD_ID_COMPONENT_VARRAY) RETURN SELF AS RESULT DETERMINISTIC; Constructs an MGD_ID object type based on the category ID, the identifier string, and the list of additional parameters required to create it. MGD_ID ( category_id VARCHAR2, identifier VARCHAR2, parameter_list VARCHAR2) RETURN SELF AS RESULT DETERMINISTIC; Constructs an MGD_ID object type based on the category name, category version, and a list of components. MGD_ID ( category_name VARCHAR2, category_version VARCHAR2, components MGD_ID_COMPONENT_VARRAY) RETURN SELF AS RESULT DETERMINISTIC; Constructs an MGD_ID object type based on the category name, category version, the identifier string, and the list of additional parameters required to create it. MGD_ID ( category_name VARCHAR2, category_version VARCHAR2, identifier VARCHAR2, parameter_list VARCHAR2) RETURN SELF AS RESULT DETERMINISTIC; Parameters Table 289-6 MGD_ID Constructor Function Parameters Parameter Description category_id Category identifier components List of component name value pairs category_name Category name, such as EPC category_version Category version. If NULL , the latest version for the specified category name will be used. identifier Identifier string in any format of an encoding scheme in the specified category. For example, for SGTIN-96 encoding, the identifier can be in the format of BINARY , PURE_IDENTITY , TAG_ENCODING , or LEGACY . Express this identifier as a string according to the appropriate grammar or pattern in the tag data translation (TDT) markup file. For example, a binary string consisting of characters 0 and 1 , a URI (either tag-encoding or pure-identity formats), or a serialized legacy code expressed as a string format for input, such as gtin=00037000302414;serial=10419703 for a SGTIN coding scheme. parameter_list List of additional parameters required to create the object in the representation. The list is expressed as a parameter string containing key-value pairs, separated by the semicolon (;) as a delimiter between key-value pairs. For example, for a GTIN code, the parameter string would look as follows: filter=3;companyprefixlength=7;taglength=96 Usage Notes Use MGD_ID_UTL.EPC_ENCODING_CATEGORY_ID as category_id . If the category is not already registered, an error is raised. If the bit_length parameter is NULL , the bit_length is 8* the length of bit_encoding . If the component list does not contain all required components, an exception MGD_ID_UTL.e_LackComponent will be thrown. Examples The following examples construct identity code type objects. Construct an MGD_ID object (SGTIN-64) passing in the category ID and a list of components. --Contents of constructor11.sql call DBMS_MGD_ID_UTL.set_proxy('www-proxy.example.com', '80'); call DBMS_MGD_ID_UTL.refresh_category('1'); select MGD_ID('1', MGD_ID_COMPONENT_VARRAY( MGD_ID_COMPONENT('companyprefix','0037000'), MGD_ID_COMPONENT('itemref','030241'), MGD_ID_COMPONENT('serial','1041970'), MGD_ID_COMPONENT('schemes','SGTIN-64') ) ) from dual; call DBMS_MGD_ID_UTL.remove_proxy(); SQL> @constructor11.sql . . . MGD_ID('1', MGD_ID_COMPONENT_VARRAY(MGD_ID_COMPONENT('companyprefix', '0037000'), MGD_ID_COMPONENT('itemref', '030241'), MGD_ID_COMPONENT('serial', '1041970'), MGD_ID_COMPONENT('schemes', 'SGTIN-64'))) . . . Constructs an MGD_ID object (SGTIN-64) passing in the category ID, the tag identifier, and the list of additional parameters that may be required to create it. --Contents of constructor22.sql call DBMS_MGD_ID_UTL.set_proxy('www-proxy.example.com', '80'); call DBMS_MGD_ID_UTL.refresh_category('1'); select MGD_ID('1', 'urn:epc:id:sgtin:0037000.030241.1041970', 'filter=3;scheme=SGTIN-64') from dual; call DBMS_MGD_ID_UTL.remove_proxy(); SQL> @constructor22.sql . . . MGD_ID('1', MGD_ID_COMPONENT_VARRAY(MGD_ID_COMPONENT('filter', '3'), MGD_ID_COMPONENT('schemes', 'SGTIN-64'), MGD_ID_COMPONENT('companyprefixlength', '7'), MGD_ID_COMPONENT('companyprefix', '0037000'), MGD_ID_COMPONENT('scheme', 'SGTIN-64'), MGD_ID_COMPONENT('serial', '1041970'), MGD_ID_COMPONENT('itemref', '030241'))) . . . Construct an MGD_ID object (SGTIN-64) passing in the category name, category version (if NULL , then the latest version will be used), and a list of components. --Contents of constructor33.sql call DBMS_MGD_ID_UTL.set_proxy('www-proxy.example.com', '80'); call DBMS_MGD_ID_UTL.refresh_category(DBMS_MGD_ID_UTL.get_category_id('EPC', NULL)); select MGD_ID('EPC', NULL, MGD_ID_COMPONENT_VARRAY( MGD_ID_COMPONENT('companyprefix','0037000'), MGD_ID_COMPONENT('itemref','030241'), MGD_ID_COMPONENT('serial','1041970'), MGD_ID_COMPONENT('schemes','SGTIN-64') ) ) from dual; call DBMS_MGD_ID_UTL.remove_proxy(); SQL> @constructor33.sql . . . MGD_ID('1', MGD_ID_COMPONENT_VARRAY(MGD_ID_COMPONENT('companyprefix', '0037000'), MGD_ID_COMPONENT('itemref', '030241'), MGD_ID_COMPONENT('serial', '1041970'), MGD_ID_COMPONENT('schemes', 'SGTIN-64'))) . . . Constructs an MGD_ID object (SGTIN-64) passing in the category name and category version, the tag identifier, and the list of additional parameters that may be required to create it. --Contents of constructor44.sql call DBMS_MGD_ID_UTL.set_proxy('www-proxy.example.com', '80'); call DBMS_MGD_ID_UTL.refresh_category(DBMS_MGD_ID_UTL.get_category_id('EPC', NULL)); select MGD_ID('EPC', NULL, 'urn:epc:id:sgtin:0037000.030241.1041970', 'filter=3;scheme=SGTIN-64') from dual; call DBMS_MGD_ID_UTL.remove_proxy(); SQL> @constructor4.sql . . . MGD_ID('1', MGD_ID_COMPONENT_VARRAY(MGD_ID_COMPONENT('filter', '3'), MGD_ID_COMPONENT('schemes', 'SGTIN-64'), MGD_ID_COMPONENT('companyprefixlength', '7'), MGD_ID_COMPONENT('companyprefix', '0037000'), MGD_ID_COMPONENT('scheme', 'SGTIN-64'), MGD_ID_COMPONENT('serial', '1041970'), MGD_ID_COMPONENT('itemref', '030241'))) . . .

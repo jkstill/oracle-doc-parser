@@ -1,0 +1,43 @@
+---
+id: 19c__DBMS_XSTREAM_ADM.RENAME_COLUMN
+name: DBMS_XSTREAM_ADM.RENAME_COLUMN
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_XSTREAM_ADM
+tags: [dbms_xstream_adm]
+source_file: DBMS_XSTREAM_ADM.html
+---
+
+# DBMS_XSTREAM_ADM.RENAME_COLUMN
+
+This procedure either adds or removes a declarative rule-based transformation which renames a column in a row logical change record (LCR) that satisfies the specified rule.
+
+## Syntax
+
+```sql
+DBMS_XSTREAM_ADM.RENAME_COLUMN(
+   rule_name         IN  VARCHAR2,
+   table_name        IN  VARCHAR2,
+   from_column_name  IN  VARCHAR2,
+   to_column_name    IN  VARCHAR2,
+   value_type        IN  VARCHAR2  DEFAULT '*',
+   step_number       IN  NUMBER    DEFAULT 0,
+   operation         IN  VARCHAR2  DEFAULT 'ADD');
+```
+
+## Parameters
+
+| Parameter | Type | Mode | Description |
+|-----------|------|------|-------------|
+| rule_name | VARCHAR2 | IN | The name of the rule, specified as [ schema_name .] rule_name . If NULL , then the procedure raises an error. For example, to specify a rule in the hr schema named employees12 , enter hr.employees12 . If the schema is not specified, then the current user is the default. |
+| table_name | VARCHAR2 | IN | The name of the table in which the column is renamed in the row LCR, specified as [ schema_name .] object_name . For example, hr.employees . If the schema is not specified, then the current user is the default. |
+| from_column_name | VARCHAR2 | IN | The name of the column to be renamed in each row LCR that satisfies the rule. |
+| to_column_name | VARCHAR2 | IN | The new name of the column in each row LCR that satisfies the rule. |
+| value_type | VARCHAR2 | IN | Specify 'NEW' to rename the column in the new values in the row LCR. Specify 'OLD' to rename the column in the old values in the row LCR. Specify '*' to rename the column in both the old and new values in the row LCR. |
+| step_number | NUMBER | IN | The order of execution of the transformation. See Also: Oracle Database XStream Guide for more information about transformation ordering |
+| operation | VARCHAR2 | IN | Specify 'ADD' to add the transformation to the rule. Specify 'REMOVE' to remove the transformation from the rule. |
+
+## Usage Notes
+
+For the transformation to be performed when the specified rule evaluates to TRUE , the rule must be in the positive rule set of an XStream client. XStream clients include capture processes, propagations, and apply processes. Note: The RENAME_COLUMN procedure supports the same data types supported by Oracle Replication capture processes. Declarative transformations can transform row LCRs only. Therefore, a DML rule must be specified when you run this procedure. If a DDL rule is specified, then the procedure raises an error. See Also: Oracle Database XStream Guide for more information about declarative rule-based transformations and about the data types supported by Oracle Replication capture processes Note: The RENAME_COLUMN procedure supports the same data types supported by Oracle Replication capture processes. Declarative transformations can transform row LCRs only. Therefore, a DML rule must be specified when you run this procedure. If a DDL rule is specified, then the procedure raises an error. See Also: Oracle Database XStream Guide for more information about declarative rule-based transformations and about the data types supported by Oracle Replication capture processes Syntax DBMS_XSTREAM_ADM.RENAME_COLUMN( rule_name IN VARCHAR2, table_name IN VARCHAR2, from_column_name IN VARCHAR2, to_column_name IN VARCHAR2, value_type IN VARCHAR2 DEFAULT '*', step_number IN NUMBER DEFAULT 0, operation IN VARCHAR2 DEFAULT 'ADD'); Parameters Table 217-29 RENAME_COLUMN Procedure Parameters Parameter Description rule_name The name of the rule, specified as [ schema_name .] rule_name . If NULL , then the procedure raises an error. For example, to specify a rule in the hr schema named employees12 , enter hr.employees12 . If the schema is not specified, then the current user is the default. table_name The name of the table in which the column is renamed in the row LCR, specified as [ schema_name .] object_name . For example, hr.employees . If the schema is not specified, then the current user is the default. from_column_name The name of the column to be renamed in each row LCR that satisfies the rule. to_column_name The new name of the column in each row LCR that satisfies the rule. value_type Specify 'NEW' to rename the column in the new values in the row LCR. Specify 'OLD' to rename the column in the old values in the row LCR. Specify '*' to rename the column in both the old and new values in the row LCR. step_number The order of execution of the transformation. See Also: Oracle Database XStream Guide for more information about transformation ordering operation Specify 'ADD' to add the transformation to the rule. Specify 'REMOVE' to remove the transformation from the rule.

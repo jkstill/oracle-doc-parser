@@ -1,0 +1,24 @@
+---
+id: 19c__DBMS_CUBE.INITIALIZE_CUBE_UPGRADE
+name: DBMS_CUBE.INITIALIZE_CUBE_UPGRADE
+object_type: plsql_procedure
+oracle_version: 19c
+doc_type: plsql_packages
+parent: DBMS_CUBE
+tags: [dbms_cube]
+source_file: DBMS_CUBE.html
+---
+
+# DBMS_CUBE.INITIALIZE_CUBE_UPGRADE
+
+This procedure processes analytic workspaces created in Oracle OLAP 10 g so they can be used by Oracle OLAP 12 c clients. It processes all analytic workspaces in the current schema. Run this procedure once for each schema in which there are 10 g analytic workspaces.
+
+## Syntax
+
+```sql
+DBMS_CUBE.INITIALIZE_CUBE_UPGRADE;
+```
+
+## Usage Notes
+
+Without this processing step, 12 c clients cannot connect to a database containing a 10 g analytic workspace with subobjects of a dimension or cube having the same name. Additionally, some DBMS_CUBE procedures and functions, such as EXPORT_XML and EXPORT_XML_TO_FILE , do not work on the 10 g metadata. After processing, OLAP 12 c clients can connect and use the alternate names provided by INITIALIZE_CUBE_UPGRADE for the conflicting subobjects. OLAP 10 g clients continue to use the original names. INITIALIZE_CUBE_UPGRADE does not upgrade any OLAP 10 g objects to OLAP 12 c format. See " DBMS_CUBE - Upgrading 10g Analytic Workspaces " . Syntax DBMS_CUBE.INITIALIZE_CUBE_UPGRADE; Usage Notes This procedure creates and populates a table named CUBE_UPGRADE_INFO . If it already exists, the table is truncated and repopulated. While the 10 g namespace allowed subobjects with the same name in the same dimension or cube, the 12 c namespace does not. When INITIALIZE_CUBE_UPGRADE detects a name conflict among subobjects such as levels, hierarchies, and dimension attributes, it creates a row in CUBE_UPGRADE_INFO providing a new, unique name for each one. Rows may also be created for objects that do not require renaming; these rows are distinguished by a value of 0 or null in the CONFLICT column. Top-level objects, such as dimensions and cubes, are not listed. You can edit the table using SQL INSERT and UPDATE if you want to customize the names of OLAP 10 g objects on OLAP 12 c clients. The UPGRADE_AW , EXPORT_XML and EXPORT_XML_TO_FILE procedures use the names specified in the NEW_NAME column of the table to identify objects in CWM or OLAP standard form (AWXML) analytic workspaces, rather than the original names. The following table describes the columns of CUBE_UPGRADE_INFO . Column Datatype NULL Description OWNER VARCHAR2 NOT NULL Owner of the analytic workspace. AW VARCHAR2 NOT NULL Name of the analytic workspace. AWXML_ID VARCHAR2 NOT NULL Full logical name of the object requiring modification, in the form simple_name.[subtype_name].object_type . For example, TIME.DIMENSION and PRODUCT.COLOR.ATTRIBUTE . NEW_NAME VARCHAR2 NOT NULL The name the object will have in Oracle 12 c after the upgrade. OBJECT_CLASS VARCHAR2 -- DerivedMeasure for calculated measures, or empty for all other object types. CONFLICT NUMBER -- Indicates the reason that the row was added to CUBE_UPGRADE_INFO: 0 : The object does not have a naming conflict but appears in the table for other reasons. 1 : Two objects have the same name and would create a conflict in the OLAP 12 c namespace. The object type (such as level or hierarchy) will be added to the names. Examples The following command creates and populates the CUBE_UPGRADE_INFO table: EXECUTE dbms_cube.initialize_cube_upgrade; The table shows that the OLAP 10 g analytic workspace has a hierarchy and a level named MARKET_SEGMENT, which will be renamed. The table also contains rows for calculated measures, but these objects do not require renaming: The value of CONFLICT is 0 . SELECT awxml_id, new_name, conflict FROM cube_upgrade_info; AWXML_ID NEW_NAME CONFLICT ---------------------------------------- ------------------------- ---------- CUSTOMER.MARKET_SEGMENT.HIERARCHY MARKET_SEGMENT_HIERARCHY 1 CUSTOMER.MARKET_SEGMENT.LEVEL MARKET_SEGMENT_LEVEL 1 UNITS_CUBE.EXTENDED_COST.MEASURE EXTENDED_COST 0 UNITS_CUBE.EXTENDED_MARGIN.MEASURE EXTENDED_MARGIN 0 UNITS_CUBE.CHG_SALES_PP.MEASURE CHG_SALES_PP 0 UNITS_CUBE.CHG_SALES_PY.MEASURE CHG_SALES_PY 0 UNITS_CUBE.PCTCHG_SALES_PP.MEASURE PCTCHG_SALES_PP 0 UNITS_CUBE.PCTCHG_SALES_PY.MEASURE PCTCHG_SALES_PY 0 UNITS_CUBE.PRODUCT_SHARE.MEASURE PRODUCT_SHARE 0 UNITS_CUBE.CHANNEL_SHARE.MEASURE CHANNEL_SHARE 0 UNITS_CUBE.MARKET_SHARE.MEASURE MARKET_SHARE 0 UNITS_CUBE.CHG_EXTMRGN_PP.MEASURE CHG_EXTMRGN_PP 0 UNITS_CUBE.CHG_EXTMRGN_PY.MEASURE CHG_EXTMRGN_PY 0 UNITS_CUBE.PCTCHG_EXTMRGN_PP.MEASURE PCTCHG_EXTMRGN_PP 0 UNITS_CUBE.PCTCHG_EXTMRGN_PY.MEASURE PCTCHG_EXTMRGN_PY 0 UNITS_CUBE.CHG_UNITS_PP.MEASURE CHG_UNITS_PP 0 UNITS_CUBE.EXTMRGN_PER_UNIT.MEASURE EXTMRGN_PER_UNIT 0 UNITS_CUBE.SALES_YTD.MEASURE SALES_YTD 0 UNITS_CUBE.SALES_YTD_PY.MEASURE SALES_YTD_PY 0 UNITS_CUBE.PCTCHG_SALES_YTD_PY.MEASURE PCTCHG_SALES_YTD_PY 0 UNITS_CUBE.SALES_QTD.MEASURE SALES_QTD 0 UNITS_CUBE.CHG_UNITS_PY.MEASURE CHG_UNITS_PY 0

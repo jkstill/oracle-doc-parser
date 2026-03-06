@@ -1,0 +1,39 @@
+---
+id: 19c__DBA_HIST_LATCH_PARENT
+name: DBA_HIST_LATCH_PARENT
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: general
+tags: [dba]
+source_file: DBA_HIST_LATCH_PARENT.html
+---
+
+# DBA_HIST_LATCH_PARENT
+
+DBA_HIST_LATCH_PARENT displays historical statistics about parent latches.
+
+## Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| SNAP_ID | NUMBER | Unique snapshot ID |
+| DBID | NUMBER | Database ID for the snapshot |
+| INSTANCE_NUMBER | NUMBER | Instance number for the snapshot |
+| LATCH_HASH | NUMBER | Latch hash |
+| LATCH_NAME | VARCHAR2(64) | Latch name |
+| LEVEL# | NUMBER | Latch level |
+| GETS | NUMBER | Number of times the latch was requested in willing-to-wait mode |
+| MISSES | NUMBER | Number of times the latch was requested in willing-to-wait mode and the requester had to wait |
+| SLEEPS | NUMBER | Number of times a willing-to-wait latch request resulted in a session sleeping while waiting for the latch |
+| IMMEDIATE_GETS | NUMBER | Number of times a latch was requested in no-wait mode |
+| IMMEDIATE_MISSES | NUMBER | Number of times a no-wait latch request did not succeed (that is, missed) |
+| SPIN_GETS | NUMBER | Number of willing-to-wait latch requests which missed the first try but succeeded while spinning |
+| SLEEP[1 | 2 | 3 | 4] | NUMBER | These columns have been deprecated and are present only for compatibility with previous releases of Oracle. No data is accumulated for these columns; they will always have a value of zero. |
+| WAIT_TIME | NUMBER | Elapsed time spent waiting for the latch (in microseconds) |
+| CON_DBID | NUMBER | The database ID of the PDB for the sampled session |
+| CON_ID | NUMBER | The ID of the container that CON_DBID identifies. Possible values include: 0 : This value is used for rows containing data that pertain to the entire CDB. This value is also used for rows in non-CDBs. 1 : This value is used for rows containing data that pertain to only the root n : Where n is the applicable container ID for the rows containing data |
+
+## Usage Notes
+
+Previous Next JavaScript must be enabled to correctly display this content This view contains snapshots of V$LATCH_PARENT . See Also: " V$LATCH_PARENT " See Also: " V$LATCH_PARENT "

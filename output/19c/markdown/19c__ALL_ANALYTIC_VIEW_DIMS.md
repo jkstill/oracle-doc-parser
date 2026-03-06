@@ -1,0 +1,18 @@
+---
+id: 19c__ALL_ANALYTIC_VIEW_DIMS
+name: ALL_ANALYTIC_VIEW_DIMS
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: objects
+tags: [all]
+source_file: ALL_ANALYTIC_VIEW_DIMS.html
+---
+
+# ALL_ANALYTIC_VIEW_DIMS
+
+ALL_ANALYTIC_VIEW_DIMS is identical to ALL_ANALYTIC_VIEW_DIMENSIONS .
+
+## Usage Notes
+
+Note: This view is available starting with Oracle Database release 19c, version 19.13. Note: This view is available starting with Oracle Database release 19c, version 19.13. See Also: " ALL_ANALYTIC_VIEW_DIMENSIONS " See Also: " ALL_ANALYTIC_VIEW_DIMENSIONS "

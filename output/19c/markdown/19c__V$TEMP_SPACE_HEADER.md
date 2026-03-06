@@ -1,0 +1,27 @@
+---
+id: 19c__V$TEMP_SPACE_HEADER
+name: V$TEMP_SPACE_HEADER
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: general
+tags: [dynamic_performance]
+source_file: V-TEMP_SPACE_HEADER.html
+---
+
+# V$TEMP_SPACE_HEADER
+
+V$TEMP_SPACE_HEADER displays aggregate information per file per LOCALLY MANAGED temporary tablespace regarding how much space is currently being used and how much is free as identified in the space header.
+
+## Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| TABLESPACE_NAME | VARCHAR2(30) | Name of the temporary tablespace |
+| FILE_ID | NUMBER | Absolute file number |
+| BYTES_USED | NUMBER | How many bytes are in use |
+| BLOCKS_USED | NUMBER | How many blocks are in use |
+| BYTES_FREE | NUMBER | How many bytes are free |
+| BLOCKS_FREE | NUMBER | How many blocks are free |
+| RELATIVE_FNO | NUMBER | The relative file number for the file |
+| CON_ID | NUMBER | The ID of the container to which the data pertains. Possible values include: 0 : This value is used for rows containing data that pertain to the entire CDB. This value is also used for rows in non-CDBs. 1 : This value is used for rows containing data that pertain to only the root n : Where n is the applicable container ID for the rows containing data |

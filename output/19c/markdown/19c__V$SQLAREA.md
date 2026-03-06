@@ -1,0 +1,110 @@
+---
+id: 19c__V$SQLAREA
+name: V$SQLAREA
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: sql
+tags: [dynamic_performance]
+source_file: V-SQLAREA.html
+---
+
+# V$SQLAREA
+
+V$SQLAREA displays statistics on shared SQL areas and contains one row per SQL string. It provides statistics on SQL statements that are in memory, parsed, and ready for execution.
+
+## Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| SQL_TEXT | VARCHAR2(1000) |  |
+| SQL_FULLTEXT | CLOB |  |
+| SQL_ID | VARCHAR2(13) |  |
+| SHARABLE_MEM | NUMBER |  |
+| PERSISTENT_MEM | NUMBER |  |
+| RUNTIME_MEM | NUMBER |  |
+| SORTS | NUMBER |  |
+| VERSION_COUNT | NUMBER |  |
+| LOADED_VERSIONS | NUMBER |  |
+| OPEN_VERSIONS | NUMBER |  |
+| USERS_OPENING | NUMBER |  |
+| FETCHES | NUMBER |  |
+| EXECUTIONS | NUMBER |  |
+| PX_SERVERS_EXECUTIONS | NUMBER |  |
+| END_OF_FETCH_COUNT | NUMBER |  |
+| USERS_EXECUTING | NUMBER |  |
+| LOADS | NUMBER |  |
+| FIRST_LOAD_TIME | VARCHAR2(76) |  |
+| INVALIDATIONS | NUMBER |  |
+| PARSE_CALLS | NUMBER |  |
+| DISK_READS | NUMBER |  |
+| DIRECT_WRITES | NUMBER |  |
+| DIRECT_READS | NUMBER |  |
+| BUFFER_GETS | NUMBER |  |
+| APPLICATION_WAIT_TIME | NUMBER |  |
+| CONCURRENCY_WAIT_TIME | NUMBER |  |
+| CLUSTER_WAIT_TIME | NUMBER |  |
+| USER_IO_WAIT_TIME | NUMBER |  |
+| PLSQL_EXEC_TIME | NUMBER |  |
+| JAVA_EXEC_TIME | NUMBER |  |
+| ROWS_PROCESSED | NUMBER |  |
+| COMMAND_TYPE | NUMBER |  |
+| OPTIMIZER_MODE | VARCHAR2(10) |  |
+| OPTIMIZER_COST | NUMBER |  |
+| OPTIMIZER_ENV | RAW(2000) |  |
+| OPTIMIZER_ENV_HASH_VALUE | NUMBER |  |
+| PARSING_USER_ID | NUMBER |  |
+| PARSING_SCHEMA_ID | NUMBER |  |
+| PARSING_SCHEMA_NAME | VARCHAR2(128) |  |
+| KEPT_VERSIONS | NUMBER |  |
+| ADDRESS | RAW(4 | 8) |  |
+| HASH_VALUE | NUMBER |  |
+| OLD_HASH_VALUE | NUMBER |  |
+| PLAN_HASH_VALUE | NUMBER |  |
+| FULL_PLAN_HASH_VALUE | NUMBER |  |
+| MODULE | VARCHAR2(64) |  |
+| MODULE_HASH | NUMBER |  |
+| ACTION | VARCHAR2(64) |  |
+| ACTION_HASH | NUMBER |  |
+| SERIALIZABLE_ABORTS | NUMBER |  |
+| OUTLINE_CATEGORY | VARCHAR2(64) |  |
+| CPU_TIME | NUMBER |  |
+| ELAPSED_TIME | NUMBER |  |
+| OUTLINE_SID | VARCHAR2(40) |  |
+| LAST_ACTIVE_CHILD_ADDRESS | RAW(4 | 8) |  |
+| REMOTE | VARCHAR2(1) |  |
+| OBJECT_STATUS | VARCHAR2(19) |  |
+| LITERAL_HASH_VALUE | NUMBER |  |
+| LAST_LOAD_TIME | DATE |  |
+| IS_OBSOLETE | VARCHAR2(1) |  |
+| IS_BIND_SENSITIVE | VARCHAR2(1) |  |
+| IS_BIND_AWARE | VARCHAR2(1) |  |
+| CHILD_LATCH | NUMBER |  |
+| SQL_PROFILE | VARCHAR2(64) |  |
+| SQL_PATCH | VARCHAR2(128) |  |
+| SQL_PLAN_BASELINE | VARCHAR2(128) |  |
+| PROGRAM_ID | NUMBER |  |
+| PROGRAM_LINE# | NUMBER |  |
+| EXACT_MATCHING_SIGNATURE | NUMBER |  |
+| FORCE_MATCHING_SIGNATURE | NUMBER |  |
+| LAST_ACTIVE_TIME | DATE |  |
+| BIND_DATA | RAW(2000) |  |
+| TYPECHECK_MEM | NUMBER |  |
+| IO_CELL_OFFLOAD_ELIGIBLE_BYTES | NUMBER |  |
+| IO_INTERCONNECT_BYTES | NUMBER |  |
+| PHYSICAL_READ_REQUESTS | NUMBER |  |
+| PHYSICAL_READ_BYTES | NUMBER |  |
+| PHYSICAL_WRITE_REQUESTS | NUMBER |  |
+| PHYSICAL_WRITE_BYTES | NUMBER |  |
+| OPTIMIZED_PHY_READ_REQUESTS | NUMBER |  |
+| LOCKED_TOTAL | NUMBER |  |
+| PINNED_TOTAL | NUMBER |  |
+| IO_CELL_UNCOMPRESSED_BYTES | NUMBER |  |
+| IO_CELL_OFFLOAD_RETURNED_BYTES | NUMBER |  |
+| CON_ID | NUMBER |  |
+| IS_REOPTIMIZABLE | VARCHAR2(1) |  |
+| IS_RESOLVED_ADAPTIVE_PLAN | VARCHAR2(1) |  |
+
+## Usage Notes
+
+See Also: Oracle Database PL/SQL Packages and Types Reference for more information about the DBMS_SHARED_POOL package Oracle Database PL/SQL Packages and Types Reference for more information about the DBMS_APPLICATION_INFO.SET_MODULE procedure Oracle Database PL/SQL Packages and Types Reference for more information about the DBMS_APPLICATION_INFO.SET_ACTION procedure Oracle Database PL/SQL Packages and Types Reference for more information about the DBMS_XPLAN package See Also: Oracle Database PL/SQL Packages and Types Reference for more information about the DBMS_SHARED_POOL package Oracle Database PL/SQL Packages and Types Reference for more information about the DBMS_APPLICATION_INFO.SET_MODULE procedure Oracle Database PL/SQL Packages and Types Reference for more information about the DBMS_APPLICATION_INFO.SET_ACTION procedure Oracle Database PL/SQL Packages and Types Reference for more information about the DBMS_XPLAN package

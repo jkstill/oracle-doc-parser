@@ -1,0 +1,18 @@
+---
+id: 19c__DBA_XML_VIEWS
+name: DBA_XML_VIEWS
+object_type: data_dictionary_view
+oracle_version: 19c
+doc_type: database_reference
+category: objects
+tags: [dba]
+source_file: DBA_XML_VIEWS.html
+---
+
+# DBA_XML_VIEWS
+
+DBA_XML_VIEWS describes all XML views in the database. Its columns are the same as those in ALL_XML_VIEWS .
+
+## Usage Notes
+
+See Also: " ALL_XML_VIEWS " See Also: " ALL_XML_VIEWS "
