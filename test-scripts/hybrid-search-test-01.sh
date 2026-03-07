@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 
-# so far the best results are with llama3.2
-# it provides good queries, good explanations, and good performance (response time)
-
+# update: the best results are with qwen2.5:14b
+# this is based in it providing SQL that did not require editing
 model="qwen2.5:14b"
+
+# slow and SQL is less robuset then qwen2.5, but it is more concise and less verbose
 #model="qwen3.5:9b"
-model="llama3.2:latest"
+
+# fast, but inaaccurate and verbose responses
+#model="llama3.2:latest"
+
+# slow, terse and kind of useless responses
+#model="glm-4.7-flash:q4_K_M"
 
 # Storage / segments
 ./bin/oracle-rag ask --ollama-url http://lestrade:11434 --model "$model" \
