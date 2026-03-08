@@ -35,12 +35,16 @@ Usage examples:
   oracle-rag ask --ollama-url http://lestrade:11434 --model qwen2.5:14b \\
       "write a query to show which sessions are waiting and on what events"
 
-  # Ask — Claude backend, FTS5 only (no --ollama-url)
-  oracle-rag ask --backend claude --model claude-haiku-4-5-20251001 \\
+  # Ask — Claude CLI backend (free, uses Claude.ai subscription)
+  oracle-rag ask --backend claude \\
       "write a query to show which sessions are waiting and on what events"
 
-  # Ask — Claude backend, hybrid search (Ollama for embeddings only)
-  oracle-rag ask --backend claude --ollama-url http://lestrade:11434 \\
+  # Ask — Claude API backend (paid, per-token billing)
+  oracle-rag ask --backend claude-api --model claude-haiku-4-5-20251001 \\
+      "write a query to show which sessions are waiting and on what events"
+
+  # Ask — Claude API backend, hybrid search (Ollama for embeddings only)
+  oracle-rag ask --backend claude-api --ollama-url http://lestrade:11434 \\
       "write a query to show which sessions are waiting and on what events"
 
   # Ask — force-include specific views, show full prompt, suppress stats
@@ -357,12 +361,12 @@ def cmd_models(args, _ret):
 def cmd_claude_models(args, _ret):
     """List available Claude models from the Anthropic API."""
     import os
-    from oracle_rag.backends import ClaudeBackend
+    from oracle_rag.backends import ClaudeAPIBackend
     if not os.environ.get("ANTHROPIC_API_KEY"):
         print("Error: ANTHROPIC_API_KEY is not set.", file=sys.stderr)
         sys.exit(1)
     try:
-        b = ClaudeBackend()
+        b = ClaudeAPIBackend()
         models = b.list_models()
         for m in models:
             print(m)
@@ -442,6 +446,7 @@ def cmd_ask(args, ret):
             ollama_url=ollama_url,
             model=getattr(args, "model", None),
             gemini_cli=getattr(args, "gemini_cli", "gemini"),
+            claude_cli=getattr(args, "claude_cli", "claude"),
             timeout=args.timeout,
         )
     except ValueError as e:
@@ -612,7 +617,7 @@ def build_parser():
                        help="Retrieve docs and generate SQL/PL/SQL via an LLM")
     p.add_argument("question", nargs="+",
                    help="Natural language question or request")
-    p.add_argument("--backend", choices=["ollama", "gemini", "claude"], default="ollama",
+    p.add_argument("--backend", choices=["ollama", "gemini", "claude", "claude-api"], default="ollama",
                    help="LLM backend to use for generation (default: ollama)")
     p.add_argument("--ollama-url", metavar="URL", default=None,
                    help="Ollama server URL. Required for ollama backend; enables hybrid search for gemini/claude backends")
@@ -623,6 +628,8 @@ def build_parser():
                    help="Embedding model for hybrid search query vectorisation (default: mxbai-embed-large:latest)")
     p.add_argument("--gemini-cli", metavar="PATH", default="gemini",
                    help="Path to the Gemini CLI binary if not on PATH (default: gemini)")
+    p.add_argument("--claude-cli", metavar="PATH", default="claude",
+                   help="Path to the Claude CLI binary if not on PATH (default: claude)")
     p.add_argument("--task", choices=["sql", "plsql", "explain", "general"],
                    default="sql",
                    help="Prompt style: sql=write a query, plsql=write a block, explain=plain-language, general=no constraint (default: sql)")

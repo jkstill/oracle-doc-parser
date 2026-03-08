@@ -4,26 +4,34 @@
 
 DRYRUN=${DRYRUN:-N}
 LOCAL_ONLY=${LOCAL_ONLY:-Y}
+SKIP_CLAUDE_API=${SKIP_CLAUDE_API:-Y} # skip by default as it is expensive and often rate limited
 
+if [[ $SKIP_CLAUDE_API != 'Y' ]]; then
 
-[[ -n "$ANTHROPIC_API_KEY" ]] || source ~/anthropic.env || {
-	echo "Please set the ANTHROPIC_API_KEY environment variable or source it from a file."
-	exit 1
-}
+	[[ -n "$ANTHROPIC_API_KEY" ]] || source ~/anthropic.env || {
+		echo "Please set the ANTHROPIC_API_KEY environment variable or source it from a file."
+		exit 1
+	}
 
-[[ -n "$ANTHROPIC_API_KEY" ]] || { echo "Please set the ANTHROPIC_API_KEY environment variable." ; exit 3; }
+	[[ -n "$ANTHROPIC_API_KEY" ]] || { echo "Please set the ANTHROPIC_API_KEY environment variable." ; exit 3; }
 
-echo "Using ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:0:5}...${ANTHROPIC_API_KEY: -5:5}"
+	echo "Using ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:0:5}...${ANTHROPIC_API_KEY: -5:5}"
 
-[[ -n "$GOOGLE_CLOUD_PROJECT" ]] || source ~/google.env || {
-	echo "Please set the Google environment variables for Gemini use."
-	exit 2
-}
+fi
+	
+if [[ $LOCAL_ONLY != 'Y' ]]; then
 
-# see if google env vars are set in  a subshell
-(
-	[[ -n "$GOOGLE_CLOUD_PROJECT" ]] || { echo "Please set the Google environment variables for Gemini use." ; exit 4; }
-)
+	[[ -n "$GOOGLE_CLOUD_PROJECT" ]] || source ~/google.env || {
+		echo "Please set the Google environment variables for Gemini use."
+		exit 2
+	}
+
+	# see if google env vars are set in  a subshell
+	(
+		[[ -n "$GOOGLE_CLOUD_PROJECT" ]] || { echo "Please set the Google environment variables for Gemini use." ; exit 4; }
+	)
+
+fi
 
 set -euo pipefail
 
@@ -40,26 +48,37 @@ declare -A queries=(
 	["write SQL for index usage in execution plans"]="write a sql statement to show what indexes have been used in sql execution plans. include the sql_id and hash_value."
 )
 
-declare -a models_ordered=(
-	"qwen2.5:14b"
-	"gemini-2.5-pro"
-	"claude-opus-4-6"
+declare -a llmsOrdered=(
+	"ollama"
+	"gemini"
+	"claude"
+	"claude-api"
 )
 
-declare -A models=( # model and backend name
-	["qwen2.5:14b"]='ollama'
-	["gemini-2.5-pro"]='gemini'
-	["claude-opus-4-6"]='claude'
+declare -A llms=(
+	[ollama]="qwen2.5:14b"
+	[gemini]="gemini-2.5-pro"
+	[claude]="claude-opus-4-6"
+	[claude-api]="claude-opus-4-6" # expensive
 )
 
-declare -A localLLM=(
+declare -xA localLLM=(
 	["ollama"]='Y'
 	["gemini"]='N'
 	["claude"]='N'
+	["claude-api"]='N'
 )
 
-for model in "${models_ordered[@]}"; do
-	backend="${models[$model]}"
+for backend in "${llmsOrdered[@]}"; do
+
+	model="${llms[$backend]}"
+
+	[[ $SKIP_CLAUDE_API == 'Y' ]] && [[ "$backend" == "claude-api" ]] && continue
+
+	#echo "Backend: $backend"
+	#echo "  Processing model: $model"
+	#continue
+
 	for query_name in "${!queries[@]}"; do
 		query="${queries[$query_name]}"
 		banner "$model -- $query_name"
@@ -67,20 +86,13 @@ for model in "${models_ordered[@]}"; do
 		export CMD
 		# when using gemini backend, CMD does to work without eval
 		if [[ "$DRYRUN" == 'Y' ]]; then
-			if [[ $LOCAL_ONLY == 'Y' ]]; then
-				[[ ${localLLM[$backend]} == 'Y' ]] &&  echo "DRY RUN LOCAL ONLY: $CMD"
-			else
-				echo "DRY RUN: $CMD" 
-			fi
+			[[ $LOCAL_ONLY == 'Y' ]] && [[ ${localLLM[$backend]} == 'N' ]] && continue
+			echo "DRY RUN: $CMD" 
 		else
-			if [[ $LOCAL_ONLY == 'Y' ]]; then
-				[[ ${localLLM[$backend]} == 'Y' ]] &&  eval "$CMD"
-			else
-				#echo "RUN: $CMD" 
-				eval "$CMD"
-			fi
+			[[ $LOCAL_ONLY == 'Y' ]] && [[ ${localLLM[$backend]} == 'N' ]] && continue
+			echo "RUN CMD: $CMD"
+			eval "$CMD"
 		fi
 	done
 done
-
 

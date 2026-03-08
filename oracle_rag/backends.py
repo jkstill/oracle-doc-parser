@@ -4,9 +4,10 @@ oracle_rag.backends
 LLM backend integrations for the oracle-rag ask command.
 
 Supported backends:
-  - Ollama (local or remote, via HTTP API)
-  - Gemini CLI (via subprocess)
-  - Claude (Anthropic API, requires ANTHROPIC_API_KEY)
+  - ollama     OllamaBackend      — local or remote Ollama server (HTTP API)
+  - gemini     GeminiCLIBackend   — Gemini CLI via subprocess (free tier)
+  - claude     ClaudeCLIBackend   — Claude CLI via subprocess (free, uses Claude.ai subscription)
+  - claude-api ClaudeAPIBackend   — Anthropic API direct (paid, per-token billing)
 
 Each backend's generate() method returns a GenerationResult containing
 the response text plus timing and token usage stats.
@@ -221,12 +222,83 @@ class GeminiCLIBackend(LLMBackend):
 
 
 # ---------------------------------------------------------------------------
-# Claude (Anthropic) backend
+# Claude CLI backend
 # ---------------------------------------------------------------------------
 
-class ClaudeBackend(LLMBackend):
+class ClaudeCLIBackend(LLMBackend):
     """
-    Calls the Anthropic Claude API directly via HTTP.
+    Calls the Claude CLI via subprocess — free, uses Claude.ai subscription.
+    Assumes `claude` is on PATH and authenticated.
+
+    The Claude CLI reads the prompt from stdin when passed the -p flag,
+    which suppresses the interactive REPL and returns the response on stdout.
+
+    Args:
+        cli_path: Path to the claude binary (default: 'claude')
+        model:    Model to use, passed as --model flag if set
+        timeout:  Subprocess timeout in seconds (default 120)
+    """
+
+    def __init__(
+        self,
+        cli_path: str = "claude",
+        model: Optional[str] = None,
+        timeout: int = 120,
+    ):
+        self.cli_path = cli_path
+        self.model = model
+        self.timeout = timeout
+
+    def name(self) -> str:
+        m = f"/{self.model}" if self.model else ""
+        return f"claude-cli{m}"
+
+    def generate(self, prompt: str) -> GenerationResult:
+        # -p sends a single prompt non-interactively and exits
+        cmd = [self.cli_path, "-p", prompt]
+        if self.model:
+            cmd += ["--model", self.model]
+
+        t0 = time.monotonic()
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+            )
+        except FileNotFoundError:
+            raise RuntimeError(
+                f"Claude CLI not found at '{self.cli_path}'. "
+                "Install it from https://claude.ai/download or ensure it is on PATH."
+            )
+        except subprocess.TimeoutExpired:
+            raise TimeoutError(f"Claude CLI timed out after {self.timeout}s")
+
+        elapsed = time.monotonic() - t0
+
+        if result.returncode != 0:
+            err = result.stderr.strip()
+            raise RuntimeError(f"Claude CLI exited {result.returncode}: {err}")
+
+        text = result.stdout.strip()
+
+        return GenerationResult(
+            text=text,
+            elapsed_sec=elapsed,
+            input_tokens=_estimate_tokens(prompt),
+            output_tokens=_estimate_tokens(text),
+            exact_tokens=False,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Claude API backend
+# ---------------------------------------------------------------------------
+
+class ClaudeAPIBackend(LLMBackend):
+    """
+    Calls the Anthropic Claude API directly via HTTP (paid, per-token billing).
 
     Requires the ANTHROPIC_API_KEY environment variable to be set.
 
@@ -252,7 +324,7 @@ class ClaudeBackend(LLMBackend):
             )
 
     def name(self) -> str:
-        return f"claude/{self.model}"
+        return f"claude-api/{self.model}"
 
     def list_models(self) -> list[str]:
         """Return list of available Claude model IDs."""
@@ -337,12 +409,17 @@ def make_backend(
     ollama_url: Optional[str] = None,
     model: Optional[str] = None,
     gemini_cli: str = "gemini",
+    claude_cli: str = "claude",
     timeout: int = 120,
 ) -> LLMBackend:
     """
     Factory function — create a backend from CLI args.
 
-    backend: 'ollama' | 'gemini' | 'claude'
+    backend: 'ollama' | 'gemini' | 'claude' | 'claude-api'
+      ollama     — Ollama HTTP API (local or remote)
+      gemini     — Gemini CLI via subprocess (free)
+      claude     — Claude CLI via subprocess (free, Claude.ai subscription)
+      claude-api — Anthropic API direct (paid, requires ANTHROPIC_API_KEY)
     """
     if backend == "ollama":
         if not ollama_url:
@@ -355,6 +432,12 @@ def make_backend(
         return GeminiCLIBackend(cli_path=gemini_cli, model=model, timeout=timeout)
 
     if backend == "claude":
-        return ClaudeBackend(model=model, timeout=timeout)
+        return ClaudeCLIBackend(cli_path=claude_cli, model=model, timeout=timeout)
 
-    raise ValueError(f"Unknown backend: {backend!r}. Choose 'ollama', 'gemini', or 'claude'.")
+    if backend == "claude-api":
+        return ClaudeAPIBackend(model=model, timeout=timeout)
+
+    raise ValueError(
+        f"Unknown backend: {backend!r}. "
+        "Choose 'ollama', 'gemini', 'claude', or 'claude-api'."
+    )

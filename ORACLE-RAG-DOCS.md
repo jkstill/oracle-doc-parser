@@ -309,57 +309,112 @@ Versions: 19c
 
 ## CLI Reference
 
-All subcommands accept these shared options:
+### Shared Options
+
+These options are available on every subcommand except `models` and `claude-models`:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--dict-db PATH` | from config | Path to data dictionary database |
-| `--plsql-db PATH` | from config | Path to PL/SQL packages database |
-| `--base-dir PATH` | — | Base output directory (alternative to above) |
-| `--db-version VER` | auto | Filter results by Oracle version, e.g. `19c` |
+| `--dict-db PATH` | from config | Path to data dictionary `oracle_docs.db` |
+| `--plsql-db PATH` | from config | Path to PL/SQL packages `oracle_docs.db` |
+| `--base-dir PATH` | — | Base output directory — alternative to `--dict-db`/`--plsql-db` |
+| `--db-version VER` | `auto` | Filter results by Oracle version, e.g. `19c` |
 | `--format` | `markdown` | Output format: `markdown` or `json` |
-| `--compact` | off | Name + description only (fewer tokens) |
-| `--limit N` | `5` | Maximum results per database |
+| `--compact` | off | Return name + description only (no columns/parameters/syntax) |
+| `--limit N` | `5` | Maximum results returned per database |
+
+---
 
 ### ask
 
-The primary command. Retrieves relevant documentation and sends it as context to an LLM.
+The primary command. Retrieves relevant documentation via hybrid or FTS5 search and sends it as context to an LLM for SQL or PL/SQL generation.
 
 ```bash
+# Ollama backend — hybrid search + local generation
 ./oracle-rag ask \
     --ollama-url http://lestrade:11434 \
     --model qwen2.5:14b \
     "write a query to show which sessions are waiting and on what events"
-```
 
-When embeddings are present, hybrid vector+FTS5 search is used automatically. Without embeddings, falls back to FTS5 keyword search.
+# Claude CLI backend — free, uses Claude.ai subscription
+./oracle-rag ask \
+    --backend claude \
+    "write a query to show which sessions are waiting and on what events"
+
+# Claude CLI backend — hybrid search (Ollama for embeddings, Claude CLI for generation)
+./oracle-rag ask \
+    --backend claude \
+    --ollama-url http://lestrade:11434 \
+    "write a query to show which sessions are waiting and on what events"
+
+# Claude API backend — paid, per-token billing, requires ANTHROPIC_API_KEY
+./oracle-rag ask \
+    --backend claude-api \
+    --model claude-haiku-4-5-20251001 \
+    "write a query to show which sessions are waiting and on what events"
+
+# Gemini CLI backend — hybrid search
+./oracle-rag ask \
+    --backend gemini \
+    --ollama-url http://lestrade:11434 \
+    "write a query to show which sessions are waiting and on what events"
+```
 
 **Options:**
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--backend` | `ollama` | `ollama` or `gemini` |
-| `--ollama-url` | `http://localhost:11434` | Ollama server URL |
-| `--model` | *(required for ollama)* | Generation model, e.g. `qwen2.5:14b` |
-| `--embed-model` | `mxbai-embed-large:latest` | Embedding model for query vectorisation |
-| `--task` | `sql` | Prompt style: `sql`, `plsql`, `explain`, `general` |
-| `--timeout` | `120` | LLM request timeout in seconds |
-| `--dict-only` | off | Search only data dictionary |
-| `--plsql-only` | off | Search only PL/SQL packages |
-| `--include NAME[,NAME...]` | — | Force-include specific views/subprograms by name |
-| `--show-prompt` | off | Print full prompt to stderr before sending |
-| `--alpha F` | `0.6` | Vector weight in hybrid scoring (0.0–1.0) |
+| `--backend` | `ollama` | LLM backend: `ollama`, `gemini`, `claude`, or `claude-api` |
+| `--ollama-url URL` | `None` | Ollama server URL. Required for `ollama` backend; optional for others (enables hybrid search when provided) |
+| `--model MODEL` | varies | Generation model name. Required for `ollama`; optional for `gemini`, `claude`, and `claude-api` (each has a default) |
+| `--embed-model MODEL` | `mxbai-embed-large:latest` | Embedding model used for hybrid search query vectorisation |
+| `--gemini-cli PATH` | `gemini` | Path to the Gemini CLI binary if not on `PATH` |
+| `--claude-cli PATH` | `claude` | Path to the Claude CLI binary if not on `PATH` |
+| `--task` | `sql` | Prompt style: `sql`, `plsql`, `explain`, or `general` |
+| `--timeout SECS` | `120` | LLM request timeout in seconds |
+| `--dict-only` | off | Search only the data dictionary database |
+| `--plsql-only` | off | Search only the PL/SQL packages database |
+| `--include NAME[,NAME...]` | — | Force-include specific views or subprograms by exact name, comma-separated. Useful when search misses a known-relevant view |
+| `--show-prompt` | off | Print the full prompt (instruction + context) to stderr before sending to the LLM |
+| `--no-stats` | off | Suppress the token count and timing line printed after each response |
+| `--alpha F` | `0.6` | Weight of vector score in hybrid scoring. `1.0` = pure vector, `0.0` = pure FTS5 |
+
+Also accepts all shared options (`--limit`, `--compact`, `--format`, etc.).
+
+**Backend comparison:**
+
+| Backend | Cost | Token counts | Requirements |
+|---------|------|-------------|--------------|
+| `ollama` | Free | Exact | Ollama server, `--ollama-url`, `--model` |
+| `gemini` | Free | Estimated | Gemini CLI installed and authenticated |
+| `claude` | Free | Estimated | Claude CLI installed and authenticated |
+| `claude-api` | Paid (per token) | Exact | `ANTHROPIC_API_KEY` env var |
 
 **Task types:**
 
-- `sql` — instructs the model to write a SQL query using only exact column and view names from the docs
-- `plsql` — instructs the model to write a PL/SQL block using only exact package/parameter names
-- `explain` — asks for a plain-language explanation referencing doc objects by name
-- `general` — no specific output format constraint
+| Task | Prompt behaviour |
+|------|-----------------|
+| `sql` | Instructs the model to write SQL using only exact view and column names from the documentation |
+| `plsql` | Instructs the model to write PL/SQL using only exact package, procedure, and parameter names |
+| `explain` | Asks for a plain-language explanation referencing Oracle object names |
+| `general` | No specific output format constraint |
+
+**Search behaviour:**
+
+| `--ollama-url` provided | Retrieval method |
+|------------------------|-----------------|
+| Yes | Hybrid vector + FTS5 (question is embedded via Ollama, cosine similarity + keyword scoring merged) |
+| No | FTS5 keyword search only |
+
+**Token and timing stats** are printed to stderr after every response:
+
+```
+--- tokens: 1842 in / 47 out / 1889 total  |  time: 4.3s ---
+```
+
+Token counts are exact for `ollama` and `claude-api` (returned by their APIs). For `gemini` and `claude` CLI backends they are estimated (`est` suffix) since the CLIs do not report token usage.
 
 **Force-including specific views:**
-
-When the search doesn't retrieve a view you know is needed, use `--include` with a comma-separated list:
 
 ```bash
 ./oracle-rag ask \
@@ -369,62 +424,84 @@ When the search doesn't retrieve a view you know is needed, use `--include` with
     "show sessions waiting on I/O events"
 ```
 
-**Debugging context quality:**
+**Inspecting the full prompt:**
 
 ```bash
 ./oracle-rag ask \
-    --ollama-url http://lestrade:11434 \
-    --model qwen2.5:14b \
+    --backend claude \
     --show-prompt \
-    "show segments larger than 1GB"
+    "show segments larger than 1GB" 2>&1 | less
 ```
-
-`--show-prompt` prints the full prompt to stderr so you can see exactly which views and columns were injected as context.
-
----
 
 ### search
 
-Full-text and/or vector search without sending to an LLM.
+Full-text and/or vector search, returning matching documentation chunks without calling an LLM. Useful for inspecting what context would be sent to `ask`.
 
 ```bash
-./oracle-rag search "session wait events" --limit 5
-./oracle-rag search "segment storage" --dict-only --limit 10
-```
+# FTS5 keyword search
+./oracle-rag search "session wait events"
+./oracle-rag search "segment storage bytes" --dict-only --limit 10
 
-If `--ollama-url` is provided and embeddings are present, uses hybrid search:
-
-```bash
+# Hybrid vector+FTS5 search (requires --ollama-url and indexed embeddings)
 ./oracle-rag search "session wait events" \
     --ollama-url http://lestrade:11434 \
     --limit 5
+
+# JSON output
+./oracle-rag search "redo log archiving" --format json
 ```
+
+**Options (in addition to shared options):**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--dict-only` | off | Search only the data dictionary database |
+| `--plsql-only` | off | Search only the PL/SQL packages database |
+| `--ollama-url URL` | — | Enable hybrid search using this Ollama server |
+| `--embed-model MODEL` | `mxbai-embed-large:latest` | Embedding model for hybrid search |
 
 ---
 
 ### lookup
 
-Exact name lookup across both databases.
+Exact name lookup across both databases. Returns full documentation including column or parameter tables.
 
 ```bash
 ./oracle-rag lookup DBA_SEGMENTS
 ./oracle-rag lookup DBMS_STATS.GATHER_TABLE_STATS
-./oracle-rag lookup V\$SESSION V\$SESSION_WAIT DBA_WAITERS
+./oracle-rag lookup 'V$SESSION' 'V$SESSION_WAIT' DBA_WAITERS
+
+# Compact output (name + description only)
+./oracle-rag lookup DBA_SEGMENTS --compact
+
+# JSON output
+./oracle-rag lookup DBA_SEGMENTS --format json
 ```
 
-Returns full documentation for each named object including column or parameter tables.
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `NAME [NAME ...]` | One or more exact object names. Dotted names like `DBMS_STATS.GATHER_TABLE_STATS` are supported. Names not found are reported to stderr. |
 
 ---
 
 ### package
 
-List all subprograms in a PL/SQL package.
+List all subprograms (procedures and functions) in a PL/SQL package.
 
 ```bash
 ./oracle-rag package DBMS_STATS
-./oracle-rag package DBMS_STATS --compact    # names + descriptions only
+./oracle-rag package DBMS_STATS --compact     # names + descriptions only
 ./oracle-rag package UTL_FILE --format json
+./oracle-rag package DBMS_METADATA --limit 20
 ```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `PACKAGE` | Package name, e.g. `DBMS_STATS`, `UTL_FILE`, `DBMS_METADATA` |
 
 ---
 
@@ -436,52 +513,107 @@ List data dictionary views matching a SQL LIKE pattern.
 ./oracle-rag views 'DBA_HIST_%'
 ./oracle-rag views 'V$%SESSION%' --limit 20
 ./oracle-rag views 'DBA_%PRIV%'
+./oracle-rag views 'ALL_%' --compact --limit 50
 ```
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `PATTERN` | SQL LIKE pattern. `%` matches any sequence of characters. Quote the pattern in the shell to prevent glob expansion. |
 
 ---
 
 ### related
 
-Show the DBA / ALL / USER / CDB family for a given view.
+Show the DBA / ALL / USER / CDB view family for a given view name. Useful for understanding which privilege level a view requires.
 
 ```bash
 ./oracle-rag related DBA_SEGMENTS
-# Returns: DBA_SEGMENTS, ALL_SEGMENTS (if they exist)
+# Returns: DBA_SEGMENTS, ALL_SEGMENTS
 
 ./oracle-rag related ALL_TABLES
 # Returns: DBA_TABLES, ALL_TABLES, USER_TABLES, CDB_TABLES
 ```
 
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `VIEW` | Any member of the family, e.g. `DBA_SEGMENTS`, `ALL_TABLES`, `USER_INDEXES` |
+
 ---
 
 ### embed
 
-Generate and store embeddings. See [Step 4](#step-4--index-embeddings) above.
+Generate and store embedding vectors for all chunks in one or both databases. Must be run once before hybrid search is available. Safe to re-run — already-embedded chunks are skipped.
+
+```bash
+# Index both databases
+./oracle-rag embed --ollama-url http://lestrade:11434
+
+# Index only one database
+./oracle-rag embed --ollama-url http://lestrade:11434 --db dict
+./oracle-rag embed --ollama-url http://lestrade:11434 --db plsql
+
+# Re-index everything from scratch
+./oracle-rag embed --ollama-url http://lestrade:11434 --force
+```
+
+**Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--ollama-url URL` | `http://localhost:11434` | Ollama server URL |
+| `--embed-model MODEL` | `mxbai-embed-large:latest` | Embedding model |
+| `--db` | `both` | Which database(s) to index: `dict`, `plsql`, or `both` |
+| `--batch-size N` | `32` | Number of chunks per embedding API call |
+| `--force` | off | Re-embed chunks even if already indexed |
+
+Does not require database configuration from `~/.oracle_rag.conf` — paths are resolved from the shared options (`--dict-db`, `--plsql-db`, or `--base-dir`).
 
 ---
 
 ### stats
 
-Show chunk counts and embedding coverage for both databases.
+Show chunk counts, object type breakdown, and embedding coverage for both databases.
 
 ```bash
 ./oracle-rag stats
 ./oracle-rag stats --format json
 ```
 
+No additional options beyond the shared options.
+
 ---
 
 ### models
 
-List available models on an Ollama server.
+List available models on an Ollama server. Does not require database configuration.
 
 ```bash
+./oracle-rag models
 ./oracle-rag models --ollama-url http://lestrade:11434
 ```
 
-Does not require database configuration.
+**Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--ollama-url URL` | `http://localhost:11434` | Ollama server URL |
 
 ---
+
+### claude-models
+
+List available Claude model IDs from the Anthropic API. Does not require database configuration. Requires `ANTHROPIC_API_KEY` to be set.
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+./oracle-rag claude-models
+```
+
+No additional options.
 
 ## Python Library Reference
 
@@ -619,7 +751,7 @@ vecs = client.embed_batch(["text1", "text2", "text3"])
     "your question"
 ```
 
-Calls `POST /api/generate` with `stream: false`. Works for any host reachable on port 11434.
+Calls `POST /api/generate` with `stream: false`. Works for any host reachable on the Ollama port. Token counts are exact (returned by the API).
 
 ### Gemini CLI
 
@@ -630,7 +762,29 @@ Calls `POST /api/generate` with `stream: false`. Works for any host reachable on
     "your question"
 ```
 
-Calls the `gemini` binary via subprocess with the prompt on stdin. The `gemini` binary must be on `PATH` and configured with credentials. Use `--gemini-cli /path/to/gemini` if it is not on PATH.
+Calls the `gemini` binary via subprocess with the prompt on stdin. Must be on `PATH` and authenticated. Use `--gemini-cli /path/to/gemini` if not on PATH. Token counts are estimated.
+
+### Claude CLI (free)
+
+```bash
+./oracle-rag ask \
+    --backend claude \
+    "your question"
+```
+
+Calls the `claude` binary via subprocess using the `-p` flag for non-interactive single-prompt mode. Uses your Claude.ai subscription — no API costs. Install from https://claude.ai/download. Use `--claude-cli /path/to/claude` if not on PATH. Token counts are estimated.
+
+### Claude API (paid)
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+./oracle-rag ask \
+    --backend claude-api \
+    --model claude-haiku-4-5-20251001 \
+    "your question"
+```
+
+Calls `https://api.anthropic.com/v1/messages` directly. Requires `ANTHROPIC_API_KEY`. Charges per token — Haiku is the most economical option. Token counts are exact (returned by the API). Use `./oracle-rag claude-models` to list available model IDs.
 
 ---
 
