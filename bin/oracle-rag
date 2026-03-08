@@ -316,6 +316,23 @@ def cmd_models(args, _ret):
         sys.exit(1)
 
 
+def cmd_claude_models(args, _ret):
+    """List available Claude models from the Anthropic API."""
+    import os
+    from oracle_rag.backends import ClaudeBackend
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        print("Error: ANTHROPIC_API_KEY is not set.", file=sys.stderr)
+        sys.exit(1)
+    try:
+        b = ClaudeBackend()
+        models = b.list_models()
+        for m in models:
+            print(m)
+    except (ConnectionError, ValueError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_ask(args, ret):
     question = " ".join(args.question)
     version = args.db_version if args.db_version != "auto" else None
@@ -523,11 +540,15 @@ def build_parser():
     p = sub.add_parser("models", help="List available Ollama models")
     p.add_argument("--ollama-url", metavar="URL", default="http://localhost:11434")
 
+    # claude-models
+    sub.add_parser("claude-models", help="List available Claude models (requires ANTHROPIC_API_KEY)")
+
     # ask
     p = sub.add_parser("ask", parents=[shared])
     p.add_argument("question", nargs="+")
-    p.add_argument("--backend", choices=["ollama", "gemini"], default="ollama")
-    p.add_argument("--ollama-url", metavar="URL", default="http://localhost:11434")
+    p.add_argument("--backend", choices=["ollama", "gemini", "claude"], default="ollama")
+    p.add_argument("--ollama-url", metavar="URL", default=None,
+                   help="Ollama server URL -- required for ollama backend and hybrid search")
     p.add_argument("--model", metavar="MODEL",
                    help="LLM model name for generation (e.g. qwen2.5:14b)")
     p.add_argument("--embed-model", metavar="MODEL",
@@ -564,6 +585,10 @@ def main():
 
     if args.command == "embed":
         cmd_embed(args, None)
+        return
+
+    if args.command == "claude-models":
+        cmd_claude_models(args, None)
         return
 
     # Build config for all other commands

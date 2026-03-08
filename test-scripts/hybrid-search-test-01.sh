@@ -13,6 +13,10 @@ model="qwen2.5:14b"
 # slow, terse and kind of useless responses
 #model="glm-4.7-flash:q4_K_M"
 
+# results with qwen2.5-coder are mixed as compared to qwen2.5
+# some SQL is more robust, some less so. but all is accurate.
+#model="qwen2.5-coder:14b"
+
 # Storage / segments
 ./bin/oracle-rag ask --ollama-url http://lestrade:11434 --model "$model" \
   "show all segments larger than 1GB with their tablespace"

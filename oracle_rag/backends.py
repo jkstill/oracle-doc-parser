@@ -6,6 +6,7 @@ LLM backend integrations for the oracle-rag ask command.
 Supported backends:
   - Ollama (local or remote, via HTTP API)
   - Gemini CLI (via subprocess)
+  - Claude (Anthropic API, requires ANTHROPIC_API_KEY)
 """
 
 from __future__ import annotations
@@ -146,6 +147,99 @@ class GeminiCLIBackend(LLMBackend):
             raise TimeoutError(f"Gemini CLI timed out after {self.timeout}s")
 
 
+
+# ---------------------------------------------------------------------------
+# Claude (Anthropic) backend
+# ---------------------------------------------------------------------------
+
+class ClaudeBackend(LLMBackend):
+    """
+    Calls the Anthropic Claude API directly via HTTP.
+
+    Requires the ANTHROPIC_API_KEY environment variable to be set.
+
+    Args:
+        model:   Claude model string, e.g. 'claude-sonnet-4-6'
+                 Default: 'claude-sonnet-4-6'
+        timeout: Request timeout in seconds (default 120)
+    """
+
+    API_URL = "https://api.anthropic.com/v1/messages"
+    DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+
+    def __init__(self, model: Optional[str] = None, timeout: int = 120):
+        import os
+        self.model = model or self.DEFAULT_MODEL
+        self.timeout = timeout
+        self.api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not self.api_key:
+            raise ValueError(
+                "ANTHROPIC_API_KEY environment variable is not set. "
+                "Export it before using the claude backend:\n"
+                "  export ANTHROPIC_API_KEY=sk-ant-..."
+            )
+
+    def name(self) -> str:
+        return f"claude/{self.model}"
+
+
+    def list_models(self) -> list[str]:
+        """Return list of available Claude model IDs."""
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/models",
+            headers={
+                "x-api-key": self.api_key,
+                "anthropic-version": "2023-06-01",
+            },
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read())
+                return [m["id"] for m in data.get("data", [])]
+        except Exception as e:
+            raise ConnectionError(f"Cannot reach Claude API: {e}") from e
+
+    def generate(self, prompt: str) -> str:
+        payload = json.dumps({
+            "model": self.model,
+            "max_tokens": 4096,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            self.API_URL,
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": self.api_key,
+                "anthropic-version": "2023-06-01",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                data = json.loads(resp.read())
+                # Response: {"content": [{"type": "text", "text": "..."}], ...}
+                blocks = data.get("content", [])
+                return "\n".join(
+                    b["text"] for b in blocks if b.get("type") == "text"
+                ).strip()
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace")
+            try:
+                err = json.loads(body)
+                msg = err.get("error", {}).get("message", body)
+            except json.JSONDecodeError:
+                msg = body
+            raise RuntimeError(f"Claude API error {e.code}: {msg}") from e
+        except urllib.error.URLError as e:
+            raise ConnectionError(f"Claude API request failed: {e}") from e
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Unexpected response from Claude API: {e}") from e
+
 # ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
@@ -160,7 +254,7 @@ def make_backend(
     """
     Factory function — create a backend from CLI args.
 
-    backend: 'ollama' | 'gemini'
+    backend: 'ollama' | 'gemini' | 'claude'
     """
     if backend == "ollama":
         if not ollama_url:
@@ -172,4 +266,7 @@ def make_backend(
     if backend == "gemini":
         return GeminiCLIBackend(cli_path=gemini_cli, model=model, timeout=timeout)
 
-    raise ValueError(f"Unknown backend: {backend!r}. Choose 'ollama' or 'gemini'.")
+    if backend == "claude":
+        return ClaudeBackend(model=model, timeout=timeout)
+
+    raise ValueError(f"Unknown backend: {backend!r}. Choose 'ollama', 'gemini', or 'claude'.")
