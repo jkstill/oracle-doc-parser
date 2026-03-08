@@ -2,32 +2,70 @@
 """
 oracle-rag — CLI for Oracle documentation RAG retrieval
 
+Subcommands:
+  ask           Retrieve docs and generate SQL/PL/SQL via an LLM
+  search        Search documentation chunks without calling an LLM
+  lookup        Exact name lookup for views or package subprograms
+  package       List all subprograms in a PL/SQL package
+  views         List data dictionary views matching a LIKE pattern
+  related       Show the DBA/ALL/USER/CDB family for a view
+  embed         Generate and store embeddings (run once per database)
+  stats         Show chunk counts and embedding coverage
+  models        List available Ollama models
+  claude-models List available Claude models (requires ANTHROPIC_API_KEY)
+
+Shared options (all subcommands except models/claude-models):
+  --dict-db PATH      Path to data dictionary oracle_docs.db
+  --plsql-db PATH     Path to PL/SQL packages oracle_docs.db
+  --base-dir PATH     Base output directory (alternative to above two)
+  --db-version VER    Filter by Oracle version, e.g. 19c (default: auto)
+  --format FORMAT     Output format: markdown or json (default: markdown)
+  --compact           Name + description only; omit columns/params/syntax
+  --limit N           Maximum results per database (default: 5)
+
 Usage examples:
 
-  # Index embeddings (run once per database)
+  # Index embeddings (run once, required for hybrid search)
   oracle-rag embed --ollama-url http://lestrade:11434
-  oracle-rag embed --ollama-url http://lestrade:11434 --db dict    # dict only
-  oracle-rag embed --ollama-url http://lestrade:11434 --db plsql   # plsql only
+  oracle-rag embed --ollama-url http://lestrade:11434 --db dict
+  oracle-rag embed --ollama-url http://lestrade:11434 --db plsql
+  oracle-rag embed --ollama-url http://lestrade:11434 --force
 
-  # Search
+  # Ask — Ollama backend, hybrid search + local generation
+  oracle-rag ask --ollama-url http://lestrade:11434 --model qwen2.5:14b \\
+      "write a query to show which sessions are waiting and on what events"
+
+  # Ask — Claude backend, FTS5 only (no --ollama-url)
+  oracle-rag ask --backend claude --model claude-haiku-4-5-20251001 \\
+      "write a query to show which sessions are waiting and on what events"
+
+  # Ask — Claude backend, hybrid search (Ollama for embeddings only)
+  oracle-rag ask --backend claude --ollama-url http://lestrade:11434 \\
+      "write a query to show which sessions are waiting and on what events"
+
+  # Ask — force-include specific views, show full prompt, suppress stats
+  oracle-rag ask --ollama-url http://lestrade:11434 --model qwen2.5:14b \\
+      --include 'V$SESSION,V$SESSION_WAIT' --show-prompt --no-stats \\
+      "show sessions waiting on I/O events"
+
+  # Ask — PL/SQL task with custom hybrid weight
+  oracle-rag ask --backend claude --task plsql --alpha 0.8 \\
+      "gather stats for all tables in HR schema"
+
+  # Search documentation without calling an LLM
   oracle-rag search "session wait events" --limit 5
+  oracle-rag search "segment storage" --dict-only --ollama-url http://lestrade:11434
+
+  # Lookup, package, views, related
   oracle-rag lookup DBA_SEGMENTS
-  oracle-rag lookup DBMS_STATS.GATHER_TABLE_STATS
+  oracle-rag lookup 'V$SESSION' 'V$SESSION_WAIT' DBA_WAITERS
   oracle-rag package DBMS_STATS --compact
-  oracle-rag views 'DBA_HIST_%'
+  oracle-rag views 'DBA_HIST_%' --limit 20
   oracle-rag related DBA_SEGMENTS
-  oracle-rag stats
 
-  # Ask an LLM (uses hybrid vector+FTS5 search if embeddings available)
-  oracle-rag ask --ollama-url http://lestrade:11434 --model qwen2.5:14b \\
-      "write a query to show which sessions are waiting and on what events"
-
-  oracle-rag ask --ollama-url http://lestrade:11434 --model qwen2.5:14b \\
-      --include 'V$SESSION,V$SESSION_WAIT' \\
-      "write a query to show which sessions are waiting and on what events"
-
-  # List available Ollama models
+  # List models
   oracle-rag models --ollama-url http://lestrade:11434
+  oracle-rag claude-models
 """
 
 import argparse
@@ -477,13 +515,20 @@ Question: {question}
 def build_parser():
     # Shared options inherited by all subcommands
     shared = argparse.ArgumentParser(add_help=False)
-    shared.add_argument("--dict-db", metavar="PATH")
-    shared.add_argument("--plsql-db", metavar="PATH")
-    shared.add_argument("--base-dir", metavar="PATH")
-    shared.add_argument("--db-version", metavar="VER", default="auto")
-    shared.add_argument("--format", choices=["markdown", "json"], default="markdown")
-    shared.add_argument("--compact", action="store_true")
-    shared.add_argument("--limit", type=int, default=5, metavar="N")
+    shared.add_argument("--dict-db", metavar="PATH",
+                        help="Path to data dictionary oracle_docs.db (overrides config)")
+    shared.add_argument("--plsql-db", metavar="PATH",
+                        help="Path to PL/SQL packages oracle_docs.db (overrides config)")
+    shared.add_argument("--base-dir", metavar="PATH",
+                        help="Base output directory; sets --dict-db and --plsql-db automatically")
+    shared.add_argument("--db-version", metavar="VER", default="auto",
+                        help="Filter results by Oracle version, e.g. 19c (default: auto)")
+    shared.add_argument("--format", choices=["markdown", "json"], default="markdown",
+                        help="Output format: markdown or json (default: markdown)")
+    shared.add_argument("--compact", action="store_true",
+                        help="Return name + description only; omit columns, parameters, and syntax")
+    shared.add_argument("--limit", type=int, default=5, metavar="N",
+                        help="Maximum results returned per database (default: 5)")
 
     parser = argparse.ArgumentParser(
         prog="oracle-rag",
@@ -511,66 +556,90 @@ def build_parser():
                    help="Re-embed chunks even if already embedded")
 
     # search
-    p = sub.add_parser("search", parents=[shared])
-    p.add_argument("query", nargs="+")
-    p.add_argument("--dict-only", action="store_true")
-    p.add_argument("--plsql-only", action="store_true")
+    p = sub.add_parser("search", parents=[shared],
+                       help="Search documentation chunks without calling an LLM")
+    p.add_argument("query", nargs="+",
+                   help="Search terms")
+    p.add_argument("--dict-only", action="store_true",
+                   help="Search only the data dictionary database")
+    p.add_argument("--plsql-only", action="store_true",
+                   help="Search only the PL/SQL packages database")
     p.add_argument("--ollama-url", metavar="URL",
-                   help="Ollama URL for hybrid search (optional)")
+                   help="Ollama server URL; enables hybrid vector+FTS5 search when provided")
     p.add_argument("--embed-model", metavar="MODEL",
-                   default="mxbai-embed-large:latest")
+                   default="mxbai-embed-large:latest",
+                   help="Embedding model for hybrid search (default: mxbai-embed-large:latest)")
 
     # lookup
-    p = sub.add_parser("lookup", parents=[shared])
-    p.add_argument("names", nargs="+", metavar="NAME")
+    p = sub.add_parser("lookup", parents=[shared],
+                       help="Exact name lookup for views or package subprograms")
+    p.add_argument("names", nargs="+", metavar="NAME",
+                   help="One or more exact object names, e.g. DBA_SEGMENTS or DBMS_STATS.GATHER_TABLE_STATS")
 
     # package
-    p = sub.add_parser("package", parents=[shared])
-    p.add_argument("package_name", metavar="PACKAGE")
+    p = sub.add_parser("package", parents=[shared],
+                       help="List all subprograms in a PL/SQL package")
+    p.add_argument("package_name", metavar="PACKAGE",
+                   help="Package name, e.g. DBMS_STATS, UTL_FILE, DBMS_METADATA")
 
     # views
-    p = sub.add_parser("views", parents=[shared])
-    p.add_argument("pattern")
+    p = sub.add_parser("views", parents=[shared],
+                       help="List data dictionary views matching a SQL LIKE pattern")
+    p.add_argument("pattern",
+                   help="SQL LIKE pattern, e.g. 'DBA_HIST_%%' or 'V$%%SESSION%%' (quote to prevent shell glob expansion)")
 
     # related
-    p = sub.add_parser("related", parents=[shared])
-    p.add_argument("view_name", metavar="VIEW")
+    p = sub.add_parser("related", parents=[shared],
+                       help="Show the DBA/ALL/USER/CDB view family for a given view")
+    p.add_argument("view_name", metavar="VIEW",
+                   help="Any member of the family, e.g. DBA_SEGMENTS, ALL_TABLES, USER_INDEXES")
 
     # stats
-    sub.add_parser("stats", parents=[shared])
+    sub.add_parser("stats", parents=[shared],
+                   help="Show chunk counts and embedding coverage for both databases")
 
     # models
     p = sub.add_parser("models", help="List available Ollama models")
-    p.add_argument("--ollama-url", metavar="URL", default="http://localhost:11434")
+    p.add_argument("--ollama-url", metavar="URL", default="http://localhost:11434",
+                   help="Ollama server URL (default: http://localhost:11434)")
 
     # claude-models
-    sub.add_parser("claude-models", help="List available Claude models (requires ANTHROPIC_API_KEY)")
+    sub.add_parser("claude-models",
+                   help="List available Claude models (requires ANTHROPIC_API_KEY)")
 
     # ask
-    p = sub.add_parser("ask", parents=[shared])
-    p.add_argument("question", nargs="+")
-    p.add_argument("--backend", choices=["ollama", "gemini", "claude"], default="ollama")
+    p = sub.add_parser("ask", parents=[shared],
+                       help="Retrieve docs and generate SQL/PL/SQL via an LLM")
+    p.add_argument("question", nargs="+",
+                   help="Natural language question or request")
+    p.add_argument("--backend", choices=["ollama", "gemini", "claude"], default="ollama",
+                   help="LLM backend to use for generation (default: ollama)")
     p.add_argument("--ollama-url", metavar="URL", default=None,
-                   help="Ollama server URL -- required for ollama backend and hybrid search")
+                   help="Ollama server URL. Required for ollama backend; enables hybrid search for gemini/claude backends")
     p.add_argument("--model", metavar="MODEL",
-                   help="LLM model name for generation (e.g. qwen2.5:14b)")
+                   help="Generation model name. Required for ollama (e.g. qwen2.5:14b); optional for gemini and claude")
     p.add_argument("--embed-model", metavar="MODEL",
                    default="mxbai-embed-large:latest",
-                   help="Embedding model for hybrid search")
-    p.add_argument("--gemini-cli", metavar="PATH", default="gemini")
+                   help="Embedding model for hybrid search query vectorisation (default: mxbai-embed-large:latest)")
+    p.add_argument("--gemini-cli", metavar="PATH", default="gemini",
+                   help="Path to the Gemini CLI binary if not on PATH (default: gemini)")
     p.add_argument("--task", choices=["sql", "plsql", "explain", "general"],
-                   default="sql")
-    p.add_argument("--timeout", type=int, default=120)
-    p.add_argument("--dict-only", action="store_true")
-    p.add_argument("--plsql-only", action="store_true")
+                   default="sql",
+                   help="Prompt style: sql=write a query, plsql=write a block, explain=plain-language, general=no constraint (default: sql)")
+    p.add_argument("--timeout", type=int, default=120,
+                   help="LLM request timeout in seconds (default: 120)")
+    p.add_argument("--dict-only", action="store_true",
+                   help="Search only the data dictionary database")
+    p.add_argument("--plsql-only", action="store_true",
+                   help="Search only the PL/SQL packages database")
     p.add_argument("--include", metavar="NAME[,NAME...]",
-                   help="Force-include views/subprograms by name (comma-separated)")
+                   help="Force-include specific views or subprograms by exact name, comma-separated (e.g. 'V$SESSION,V$SESSION_WAIT')")
     p.add_argument("--show-prompt", action="store_true",
-                   help="Print full prompt to stderr before sending")
+                   help="Print the full prompt to stderr before sending to the LLM")
     p.add_argument("--no-stats", action="store_true",
-                   help="Suppress token/timing stats after response")
+                   help="Suppress token count and timing stats printed after the response")
     p.add_argument("--alpha", type=float, default=0.6, metavar="F",
-                   help="Vector weight in hybrid search 0.0-1.0 (default 0.6)")
+                   help="Vector weight in hybrid scoring: 1.0=pure vector, 0.0=pure FTS5 (default: 0.6)")
 
     return parser
 
