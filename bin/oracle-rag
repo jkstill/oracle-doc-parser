@@ -413,12 +413,15 @@ def cmd_ask(args, ret):
     print(f"[{backend.name()}]", file=sys.stderr)
 
     try:
-        response = backend.generate(prompt)
+        result = backend.generate(prompt)
     except (ConnectionError, RuntimeError, TimeoutError) as e:
         print(f"LLM error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(response)
+    print(result.text)
+
+    if not getattr(args, "no_stats", False):
+        print(f"\n--- {result.stats_line()} ---", file=sys.stderr)
 
 
 def _build_prompt(question, context, task):
@@ -564,6 +567,8 @@ def build_parser():
                    help="Force-include views/subprograms by name (comma-separated)")
     p.add_argument("--show-prompt", action="store_true",
                    help="Print full prompt to stderr before sending")
+    p.add_argument("--no-stats", action="store_true",
+                   help="Suppress token/timing stats after response")
     p.add_argument("--alpha", type=float, default=0.6, metavar="F",
                    help="Vector weight in hybrid search 0.0-1.0 (default 0.6)")
 

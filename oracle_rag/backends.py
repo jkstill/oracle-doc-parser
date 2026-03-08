@@ -7,16 +7,60 @@ Supported backends:
   - Ollama (local or remote, via HTTP API)
   - Gemini CLI (via subprocess)
   - Claude (Anthropic API, requires ANTHROPIC_API_KEY)
+
+Each backend's generate() method returns a GenerationResult containing
+the response text plus timing and token usage stats.
 """
 
 from __future__ import annotations
 
 import json
 import subprocess
+import time
 import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Optional
+
+
+# ---------------------------------------------------------------------------
+# Result dataclass — common across all backends
+# ---------------------------------------------------------------------------
+
+@dataclass
+class GenerationResult:
+    """
+    Response from an LLM backend, with timing and token usage.
+
+    Token counts:
+      - Ollama:   exact (returned by API)
+      - Claude:   exact (returned by API)
+      - Gemini:   estimated (~4 chars per token, standard approximation)
+    """
+    text:          str
+    elapsed_sec:   float
+    input_tokens:  int
+    output_tokens: int
+    exact_tokens:  bool   # True if token counts are from the API, False if estimated
+
+    @property
+    def total_tokens(self) -> int:
+        return self.input_tokens + self.output_tokens
+
+    def stats_line(self) -> str:
+        """Single-line summary for display."""
+        approx = "" if self.exact_tokens else " (est)"
+        return (
+            f"tokens: {self.input_tokens} in / {self.output_tokens} out / "
+            f"{self.total_tokens} total{approx}  |  "
+            f"time: {self.elapsed_sec:.1f}s"
+        )
+
+
+def _estimate_tokens(text: str) -> int:
+    """Rough token estimate: ~4 characters per token."""
+    return max(1, len(text) // 4)
 
 
 # ---------------------------------------------------------------------------
@@ -25,8 +69,8 @@ from typing import Optional
 
 class LLMBackend(ABC):
     @abstractmethod
-    def generate(self, prompt: str) -> str:
-        """Send prompt, return response text."""
+    def generate(self, prompt: str) -> GenerationResult:
+        """Send prompt, return GenerationResult."""
         ...
 
     @abstractmethod
@@ -66,7 +110,7 @@ class OllamaBackend(LLMBackend):
         except Exception as e:
             raise ConnectionError(f"Cannot reach Ollama at {self.base_url}: {e}") from e
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str) -> GenerationResult:
         url = f"{self.base_url}/api/generate"
         payload = json.dumps({
             "model": self.model,
@@ -80,16 +124,31 @@ class OllamaBackend(LLMBackend):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
+        t0 = time.monotonic()
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 data = json.loads(resp.read())
-                return data.get("response", "").strip()
         except urllib.error.URLError as e:
             raise ConnectionError(
                 f"Ollama request failed at {self.base_url}: {e}"
             ) from e
         except json.JSONDecodeError as e:
             raise ValueError(f"Unexpected response from Ollama: {e}") from e
+
+        elapsed = time.monotonic() - t0
+        text = data.get("response", "").strip()
+
+        # Ollama returns exact token counts
+        input_tokens  = data.get("prompt_eval_count", _estimate_tokens(prompt))
+        output_tokens = data.get("eval_count", _estimate_tokens(text))
+
+        return GenerationResult(
+            text=text,
+            elapsed_sec=elapsed,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            exact_tokens=True,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -100,6 +159,7 @@ class GeminiCLIBackend(LLMBackend):
     """
     Calls the Gemini CLI via subprocess.
     Assumes `gemini` is on PATH and configured with credentials.
+    Token counts are estimated since the CLI doesn't report them.
 
     Args:
         cli_path: Path to the gemini binary (default: 'gemini')
@@ -121,11 +181,12 @@ class GeminiCLIBackend(LLMBackend):
         m = f"/{self.model}" if self.model else ""
         return f"gemini-cli{m}"
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str) -> GenerationResult:
         cmd = [self.cli_path]
         if self.model:
             cmd += ["--model", self.model]
-        # Gemini CLI reads prompt from stdin
+
+        t0 = time.monotonic()
         try:
             result = subprocess.run(
                 cmd,
@@ -134,10 +195,6 @@ class GeminiCLIBackend(LLMBackend):
                 text=True,
                 timeout=self.timeout,
             )
-            if result.returncode != 0:
-                err = result.stderr.strip()
-                raise RuntimeError(f"Gemini CLI exited {result.returncode}: {err}")
-            return result.stdout.strip()
         except FileNotFoundError:
             raise RuntimeError(
                 f"Gemini CLI not found at '{self.cli_path}'. "
@@ -146,6 +203,21 @@ class GeminiCLIBackend(LLMBackend):
         except subprocess.TimeoutExpired:
             raise TimeoutError(f"Gemini CLI timed out after {self.timeout}s")
 
+        elapsed = time.monotonic() - t0
+
+        if result.returncode != 0:
+            err = result.stderr.strip()
+            raise RuntimeError(f"Gemini CLI exited {result.returncode}: {err}")
+
+        text = result.stdout.strip()
+
+        return GenerationResult(
+            text=text,
+            elapsed_sec=elapsed,
+            input_tokens=_estimate_tokens(prompt),
+            output_tokens=_estimate_tokens(text),
+            exact_tokens=False,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -159,8 +231,8 @@ class ClaudeBackend(LLMBackend):
     Requires the ANTHROPIC_API_KEY environment variable to be set.
 
     Args:
-        model:   Claude model string, e.g. 'claude-sonnet-4-6'
-                 Default: 'claude-sonnet-4-6'
+        model:   Claude model string, e.g. 'claude-haiku-4-5-20251001'
+                 Default: 'claude-haiku-4-5-20251001'
         timeout: Request timeout in seconds (default 120)
     """
 
@@ -182,7 +254,6 @@ class ClaudeBackend(LLMBackend):
     def name(self) -> str:
         return f"claude/{self.model}"
 
-
     def list_models(self) -> list[str]:
         """Return list of available Claude model IDs."""
         req = urllib.request.Request(
@@ -200,7 +271,7 @@ class ClaudeBackend(LLMBackend):
         except Exception as e:
             raise ConnectionError(f"Cannot reach Claude API: {e}") from e
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str) -> GenerationResult:
         payload = json.dumps({
             "model": self.model,
             "max_tokens": 4096,
@@ -219,14 +290,10 @@ class ClaudeBackend(LLMBackend):
             },
             method="POST",
         )
+        t0 = time.monotonic()
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 data = json.loads(resp.read())
-                # Response: {"content": [{"type": "text", "text": "..."}], ...}
-                blocks = data.get("content", [])
-                return "\n".join(
-                    b["text"] for b in blocks if b.get("type") == "text"
-                ).strip()
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="replace")
             try:
@@ -239,6 +306,27 @@ class ClaudeBackend(LLMBackend):
             raise ConnectionError(f"Claude API request failed: {e}") from e
         except json.JSONDecodeError as e:
             raise ValueError(f"Unexpected response from Claude API: {e}") from e
+
+        elapsed = time.monotonic() - t0
+
+        blocks = data.get("content", [])
+        text = "\n".join(
+            b["text"] for b in blocks if b.get("type") == "text"
+        ).strip()
+
+        # Claude API returns exact token counts in "usage"
+        usage = data.get("usage", {})
+        input_tokens  = usage.get("input_tokens",  _estimate_tokens(prompt))
+        output_tokens = usage.get("output_tokens", _estimate_tokens(text))
+
+        return GenerationResult(
+            text=text,
+            elapsed_sec=elapsed,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            exact_tokens=True,
+        )
+
 
 # ---------------------------------------------------------------------------
 # Factory
