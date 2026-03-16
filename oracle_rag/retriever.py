@@ -35,9 +35,13 @@ import json
 import os
 import re
 import sqlite3
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from oracle_rag.tracer import Tracer
 
 
 # ---------------------------------------------------------------------------
@@ -335,8 +339,9 @@ class OracleRetriever:
         chunks = ret.views_like('DBA_HIST_%', limit=20)
     """
 
-    def __init__(self, config: RetrievalConfig):
+    def __init__(self, config: RetrievalConfig, tracer: Optional["Tracer"] = None):
         self.config = config
+        self.tracer = tracer
         self._dict_con:  Optional[sqlite3.Connection] = None
         self._plsql_con: Optional[sqlite3.Connection] = None
 
@@ -459,14 +464,40 @@ class OracleRetriever:
         fts_query = _build_fts_query(query)
         result = RetrievalResult(query=query)
 
+        if self.tracer:
+            self.tracer.step(
+                "FTS5 search: start",
+                f"query={query[:80]}  fts_query={fts_query[:80]}  limit={limit}",
+            )
+
         if not plsql_only and self._dict_con:
+            t0 = time.monotonic()
             result.dict_chunks = self._fts_search(
                 self._dict_con, fts_query, limit, version=version
             )
+            if self.tracer:
+                self.tracer.step(
+                    "FTS5 search: dict db complete",
+                    f"chunks={len(result.dict_chunks)}",
+                    elapsed=time.monotonic() - t0,
+                )
 
         if not dict_only and self._plsql_con:
+            t0 = time.monotonic()
             result.plsql_chunks = self._fts_search(
                 self._plsql_con, fts_query, limit, version=version
+            )
+            if self.tracer:
+                self.tracer.step(
+                    "FTS5 search: plsql db complete",
+                    f"chunks={len(result.plsql_chunks)}",
+                    elapsed=time.monotonic() - t0,
+                )
+
+        if self.tracer:
+            self.tracer.step(
+                "FTS5 search: complete",
+                f"total_chunks={result.total}",
             )
 
         return result
@@ -479,14 +510,36 @@ class OracleRetriever:
 
         Returns the first match found, or None.
         """
+        if self.tracer:
+            t0 = time.monotonic()
+
         if self._dict_con:
             chunk = self._exact_lookup(self._dict_con, name)
             if chunk:
+                if self.tracer:
+                    self.tracer.step(
+                        "lookup: found in dict db",
+                        f"name={name}",
+                        elapsed=time.monotonic() - t0,
+                    )
                 return chunk
         if self._plsql_con:
             chunk = self._exact_lookup(self._plsql_con, name)
             if chunk:
+                if self.tracer:
+                    self.tracer.step(
+                        "lookup: found in plsql db",
+                        f"name={name}",
+                        elapsed=time.monotonic() - t0,
+                    )
                 return chunk
+
+        if self.tracer:
+            self.tracer.step(
+                "lookup: not found",
+                f"name={name}",
+                elapsed=time.monotonic() - t0,
+            )
         return None
 
     def lookup_many(self, names: list[str]) -> list[Chunk]:

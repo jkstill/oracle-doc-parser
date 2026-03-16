@@ -22,7 +22,10 @@ import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from oracle_rag.tracer import Tracer
 
 
 # ---------------------------------------------------------------------------
@@ -91,12 +94,20 @@ class OllamaBackend(LLMBackend):
         base_url: Ollama server URL, e.g. 'http://lestrade:11434'
         model:    Model name, e.g. 'qwen2.5:14b', 'llama3', 'mistral'
         timeout:  Request timeout in seconds (default 120)
+        tracer:   Optional Tracer instance for step-level timing output
     """
 
-    def __init__(self, base_url: str, model: str, timeout: int = 120):
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        timeout: int = 120,
+        tracer: Optional["Tracer"] = None,
+    ):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
+        self.tracer = tracer
 
     def name(self) -> str:
         return f"ollama/{self.model} @ {self.base_url}"
@@ -112,6 +123,12 @@ class OllamaBackend(LLMBackend):
             raise ConnectionError(f"Cannot reach Ollama at {self.base_url}: {e}") from e
 
     def generate(self, prompt: str) -> GenerationResult:
+        if self.tracer:
+            self.tracer.step(
+                "ollama generate: start",
+                f"model={self.model}  url={self.base_url}  prompt_chars={len(prompt)}",
+            )
+
         url = f"{self.base_url}/api/generate"
         payload = json.dumps({
             "model": self.model,
@@ -143,6 +160,13 @@ class OllamaBackend(LLMBackend):
         input_tokens  = data.get("prompt_eval_count", _estimate_tokens(prompt))
         output_tokens = data.get("eval_count", _estimate_tokens(text))
 
+        if self.tracer:
+            self.tracer.step(
+                "ollama generate: complete",
+                f"in={input_tokens}  out={output_tokens}  total={input_tokens + output_tokens}",
+                elapsed=elapsed,
+            )
+
         return GenerationResult(
             text=text,
             elapsed_sec=elapsed,
@@ -173,16 +197,24 @@ class GeminiCLIBackend(LLMBackend):
         cli_path: str = "gemini",
         model: Optional[str] = None,
         timeout: int = 120,
+        tracer: Optional["Tracer"] = None,
     ):
         self.cli_path = cli_path
         self.model = model
         self.timeout = timeout
+        self.tracer = tracer
 
     def name(self) -> str:
         m = f"/{self.model}" if self.model else ""
         return f"gemini-cli{m}"
 
     def generate(self, prompt: str) -> GenerationResult:
+        if self.tracer:
+            self.tracer.step(
+                "gemini generate: start",
+                f"cli={self.cli_path}  model={self.model or 'default'}  prompt_chars={len(prompt)}",
+            )
+
         cmd = [self.cli_path]
         if self.model:
             cmd += ["--model", self.model]
@@ -211,12 +243,21 @@ class GeminiCLIBackend(LLMBackend):
             raise RuntimeError(f"Gemini CLI exited {result.returncode}: {err}")
 
         text = result.stdout.strip()
+        input_tokens  = _estimate_tokens(prompt)
+        output_tokens = _estimate_tokens(text)
+
+        if self.tracer:
+            self.tracer.step(
+                "gemini generate: complete",
+                f"in={input_tokens} (est)  out={output_tokens} (est)",
+                elapsed=elapsed,
+            )
 
         return GenerationResult(
             text=text,
             elapsed_sec=elapsed,
-            input_tokens=_estimate_tokens(prompt),
-            output_tokens=_estimate_tokens(text),
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
             exact_tokens=False,
         )
 
@@ -244,16 +285,24 @@ class ClaudeCLIBackend(LLMBackend):
         cli_path: str = "claude",
         model: Optional[str] = None,
         timeout: int = 120,
+        tracer: Optional["Tracer"] = None,
     ):
         self.cli_path = cli_path
         self.model = model
         self.timeout = timeout
+        self.tracer = tracer
 
     def name(self) -> str:
         m = f"/{self.model}" if self.model else ""
         return f"claude-cli{m}"
 
     def generate(self, prompt: str) -> GenerationResult:
+        if self.tracer:
+            self.tracer.step(
+                "claude-cli generate: start",
+                f"cli={self.cli_path}  model={self.model or 'default'}  prompt_chars={len(prompt)}",
+            )
+
         # -p sends a single prompt non-interactively and exits
         cmd = [self.cli_path, "-p", prompt]
         if self.model:
@@ -282,12 +331,21 @@ class ClaudeCLIBackend(LLMBackend):
             raise RuntimeError(f"Claude CLI exited {result.returncode}: {err}")
 
         text = result.stdout.strip()
+        input_tokens  = _estimate_tokens(prompt)
+        output_tokens = _estimate_tokens(text)
+
+        if self.tracer:
+            self.tracer.step(
+                "claude-cli generate: complete",
+                f"in={input_tokens} (est)  out={output_tokens} (est)",
+                elapsed=elapsed,
+            )
 
         return GenerationResult(
             text=text,
             elapsed_sec=elapsed,
-            input_tokens=_estimate_tokens(prompt),
-            output_tokens=_estimate_tokens(text),
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
             exact_tokens=False,
         )
 
@@ -311,10 +369,16 @@ class ClaudeAPIBackend(LLMBackend):
     API_URL = "https://api.anthropic.com/v1/messages"
     DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 
-    def __init__(self, model: Optional[str] = None, timeout: int = 120):
+    def __init__(
+        self,
+        model: Optional[str] = None,
+        timeout: int = 120,
+        tracer: Optional["Tracer"] = None,
+    ):
         import os
         self.model = model or self.DEFAULT_MODEL
         self.timeout = timeout
+        self.tracer = tracer
         self.api_key = os.environ.get("ANTHROPIC_API_KEY", "")
         if not self.api_key:
             raise ValueError(
@@ -344,6 +408,12 @@ class ClaudeAPIBackend(LLMBackend):
             raise ConnectionError(f"Cannot reach Claude API: {e}") from e
 
     def generate(self, prompt: str) -> GenerationResult:
+        if self.tracer:
+            self.tracer.step(
+                "claude-api generate: start",
+                f"model={self.model}  prompt_chars={len(prompt)}",
+            )
+
         payload = json.dumps({
             "model": self.model,
             "max_tokens": 4096,
@@ -391,6 +461,13 @@ class ClaudeAPIBackend(LLMBackend):
         input_tokens  = usage.get("input_tokens",  _estimate_tokens(prompt))
         output_tokens = usage.get("output_tokens", _estimate_tokens(text))
 
+        if self.tracer:
+            self.tracer.step(
+                "claude-api generate: complete",
+                f"in={input_tokens}  out={output_tokens}  total={input_tokens + output_tokens}",
+                elapsed=elapsed,
+            )
+
         return GenerationResult(
             text=text,
             elapsed_sec=elapsed,
@@ -411,6 +488,7 @@ def make_backend(
     gemini_cli: str = "gemini",
     claude_cli: str = "claude",
     timeout: int = 120,
+    tracer: Optional["Tracer"] = None,
 ) -> LLMBackend:
     """
     Factory function — create a backend from CLI args.
@@ -426,16 +504,16 @@ def make_backend(
             raise ValueError("--ollama-url is required for the ollama backend")
         if not model:
             raise ValueError("--model is required for the ollama backend")
-        return OllamaBackend(ollama_url, model, timeout=timeout)
+        return OllamaBackend(ollama_url, model, timeout=timeout, tracer=tracer)
 
     if backend == "gemini":
-        return GeminiCLIBackend(cli_path=gemini_cli, model=model, timeout=timeout)
+        return GeminiCLIBackend(cli_path=gemini_cli, model=model, timeout=timeout, tracer=tracer)
 
     if backend == "claude":
-        return ClaudeCLIBackend(cli_path=claude_cli, model=model, timeout=timeout)
+        return ClaudeCLIBackend(cli_path=claude_cli, model=model, timeout=timeout, tracer=tracer)
 
     if backend == "claude-api":
-        return ClaudeAPIBackend(model=model, timeout=timeout)
+        return ClaudeAPIBackend(model=model, timeout=timeout, tracer=tracer)
 
     raise ValueError(
         f"Unknown backend: {backend!r}. "

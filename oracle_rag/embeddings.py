@@ -22,9 +22,12 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from oracle_rag.retriever import Chunk, _open_db, _row_to_chunk
+
+if TYPE_CHECKING:
+    from oracle_rag.tracer import Tracer
 
 
 # ---------------------------------------------------------------------------
@@ -101,12 +104,14 @@ class EmbeddingClient:
         batch_size: int = 32,
         timeout: int = 60,
         retry: int = 3,
+        tracer: Optional["Tracer"] = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.batch_size = batch_size
         self.timeout = timeout
         self.retry = retry
+        self.tracer = tracer
 
     def embed_one(self, text: str) -> list[float]:
         """Embed a single text string."""
@@ -114,12 +119,19 @@ class EmbeddingClient:
 
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Embed a list of texts, returns list of vectors."""
+        if self.tracer:
+            self.tracer.step(
+                "embed_batch: start",
+                f"model={self.model}  texts={len(texts)}",
+            )
+
         url = f"{self.base_url}/api/embed"
         payload = json.dumps({
             "model": self.model,
             "input": texts,
         }).encode("utf-8")
 
+        t0 = time.monotonic()
         for attempt in range(self.retry):
             try:
                 req = urllib.request.Request(
@@ -130,7 +142,15 @@ class EmbeddingClient:
                 )
                 with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                     data = json.loads(resp.read())
-                    return data["embeddings"]
+                    vectors = data["embeddings"]
+                if self.tracer:
+                    elapsed = time.monotonic() - t0
+                    self.tracer.step(
+                        "embed_batch: complete",
+                        f"vectors={len(vectors)}  dims={len(vectors[0]) if vectors else 0}",
+                        elapsed=elapsed,
+                    )
+                return vectors
             except urllib.error.URLError as e:
                 if attempt < self.retry - 1:
                     time.sleep(2 ** attempt)
@@ -188,6 +208,7 @@ def index_database(
     client: EmbeddingClient,
     force: bool = False,
     progress_cb=None,
+    tracer: Optional["Tracer"] = None,
 ) -> dict:
     """
     Embed all chunks in a database and store vectors.
@@ -197,10 +218,14 @@ def index_database(
         client:      EmbeddingClient instance
         force:       Re-embed even if already embedded
         progress_cb: Optional callback(current, total, chunk_name)
+        tracer:      Optional Tracer for step-level timing
 
     Returns:
         dict with 'embedded', 'skipped', 'failed' counts
     """
+    if tracer:
+        tracer.step("index_database: start", f"db={db_path}  model={client.model}")
+
     con = _open_db(db_path)
     ensure_embed_schema(con)
 
@@ -214,8 +239,16 @@ def index_database(
     total = len(to_embed)
     stats = {"embedded": 0, "skipped": len(already_embedded), "failed": 0}
 
+    if tracer:
+        tracer.step(
+            "index_database: chunks loaded",
+            f"total={len(chunks)}  to_embed={total}  skipped={stats['skipped']}",
+        )
+
     if total == 0:
         con.close()
+        if tracer:
+            tracer.step("index_database: nothing to embed")
         return stats
 
     # Process in batches
@@ -223,6 +256,7 @@ def index_database(
         batch = to_embed[batch_start:batch_start + client.batch_size]
         texts = [chunk_to_embed_text(c) for c in batch]
 
+        t_batch = time.monotonic()
         try:
             vectors = client.embed_batch(texts)
         except ConnectionError as e:
@@ -244,7 +278,21 @@ def index_database(
 
         con.commit()
 
+        if tracer:
+            tracer.step(
+                f"index_database: batch {batch_start // client.batch_size + 1}",
+                f"chunks={len(batch)}  embedded_so_far={stats['embedded']}/{total}",
+                elapsed=time.monotonic() - t_batch,
+            )
+
     con.close()
+
+    if tracer:
+        tracer.step(
+            "index_database: complete",
+            f"embedded={stats['embedded']}  skipped={stats['skipped']}  failed={stats['failed']}",
+        )
+
     return stats
 
 
@@ -270,11 +318,13 @@ class HybridSearcher:
         client: EmbeddingClient,
         alpha: float = 0.6,
         embed_model: Optional[str] = None,
+        tracer: Optional["Tracer"] = None,
     ):
         self.db_path = db_path
         self.client = client
         self.alpha = alpha
         self.embed_model = embed_model or client.model
+        self.tracer = tracer
         self._con = _open_db(db_path)
 
     def close(self):
@@ -351,12 +401,40 @@ class HybridSearcher:
         """
         Hybrid search: embed query, merge vector + FTS5 scores, return chunks.
         """
+        if self.tracer:
+            self.tracer.step(
+                "hybrid search: start",
+                f"query={query[:80]}  limit={limit}  alpha={self.alpha}",
+            )
+
         # Embed the query
+        t0 = time.monotonic()
         query_vec = self.client.embed_one(query)
+        if self.tracer:
+            self.tracer.step(
+                "hybrid search: query embedded",
+                f"dims={len(query_vec)}",
+                elapsed=time.monotonic() - t0,
+            )
 
         # Get scores from both sources
+        t0 = time.monotonic()
         vec_scores  = dict(self._vector_search(query_vec, limit))
+        if self.tracer:
+            self.tracer.step(
+                "hybrid search: vector search complete",
+                f"candidates={len(vec_scores)}",
+                elapsed=time.monotonic() - t0,
+            )
+
+        t0 = time.monotonic()
         fts_scores  = dict(self._fts_search(query, limit))
+        if self.tracer:
+            self.tracer.step(
+                "hybrid search: FTS5 search complete",
+                f"candidates={len(fts_scores)}",
+                elapsed=time.monotonic() - t0,
+            )
 
         # Union of all candidate chunk IDs
         all_ids = set(vec_scores) | set(fts_scores)
@@ -399,6 +477,12 @@ class HybridSearcher:
                 result.append(chunk)
             if len(result) >= limit:
                 break
+
+        if self.tracer:
+            self.tracer.step(
+                "hybrid search: complete",
+                f"returned={len(result)}  db={self.db_path}",
+            )
 
         return result
 

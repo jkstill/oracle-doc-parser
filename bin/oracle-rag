@@ -101,7 +101,7 @@ def format_chunks_json(chunks):
 # Hybrid search helper — used by search and ask commands
 # ---------------------------------------------------------------------------
 
-def _make_hybrid_searcher(db_path, ollama_url, embed_model, alpha=0.6):
+def _make_hybrid_searcher(db_path, ollama_url, embed_model, alpha=0.6, tracer=None):
     """
     Try to build a HybridSearcher for a database.
     Returns None if embeddings table is missing or empty.
@@ -119,8 +119,21 @@ def _make_hybrid_searcher(db_path, ollama_url, embed_model, alpha=0.6):
     except sqlite3.OperationalError:
         return None
 
-    client = EmbeddingClient(ollama_url, model=embed_model)
-    return HybridSearcher(db_path, client, alpha=alpha)
+    client = EmbeddingClient(ollama_url, model=embed_model, tracer=tracer)
+    return HybridSearcher(db_path, client, alpha=alpha, tracer=tracer)
+
+
+# ---------------------------------------------------------------------------
+# Tracer helper
+# ---------------------------------------------------------------------------
+
+def _make_tracer(args):
+    """Return a Tracer if --trace was requested, else None."""
+    if not getattr(args, "trace", False):
+        return None
+    from oracle_rag.tracer import Tracer
+    trace_dir = getattr(args, "trace_dir", "./trace")
+    return Tracer(trace_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -130,6 +143,10 @@ def _make_hybrid_searcher(db_path, ollama_url, embed_model, alpha=0.6):
 def cmd_embed(args, _ret):
     """Generate and store embeddings for all chunks in one or both databases."""
     from oracle_rag.embeddings import EmbeddingClient, index_database
+
+    tracer = _make_tracer(args)
+    if tracer:
+        print(f"[trace: {tracer.path}]", file=sys.stderr)
 
     # Build config to find DB paths
     try:
@@ -146,6 +163,7 @@ def cmd_embed(args, _ret):
         base_url=args.ollama_url,
         model=args.embed_model,
         batch_size=args.batch_size,
+        tracer=tracer,
     )
 
     # Test connection and report dimensions
@@ -153,6 +171,8 @@ def cmd_embed(args, _ret):
     try:
         dims = client.check_connection()
         print(f"OK — embedding dimension: {dims}")
+        if tracer:
+            tracer.step("embed: connection OK", f"url={args.ollama_url}  dims={dims}")
     except ConnectionError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -182,10 +202,14 @@ def cmd_embed(args, _ret):
             client=client,
             force=args.force,
             progress_cb=progress,
+            tracer=tracer,
         )
         print(f"  Done: {stats['embedded']} embedded, "
               f"{stats['skipped']} skipped, "
               f"{stats['failed']} failed")
+
+    if tracer:
+        tracer.close(f"embed complete  dbs={len(dbs)}")
 
 
 def cmd_search(args, ret):
@@ -376,27 +400,43 @@ def cmd_claude_models(args, _ret):
 
 
 def cmd_ask(args, ret):
+    tracer = _make_tracer(args)
+    if tracer:
+        print(f"[trace: {tracer.path}]", file=sys.stderr)
+        ret.tracer = tracer
+
     question = " ".join(args.question)
     version = args.db_version if args.db_version != "auto" else None
     ollama_url = getattr(args, "ollama_url", None)
     embed_model = getattr(args, "embed_model", "mxbai-embed-large:latest")
+
+    if tracer:
+        tracer.step("ask: start", f"question={question[:120]}")
 
     # Try hybrid search if embeddings are available
     use_hybrid = ollama_url and _embeddings_available(ret, args)
 
     if use_hybrid:
         print("[hybrid vector+FTS5 search]", file=sys.stderr)
+        if tracer:
+            tracer.step("ask: using hybrid vector+FTS5 search")
         from oracle_rag.retriever import RetrievalResult
         dict_chunks, plsql_chunks = [], []
 
         if not args.plsql_only and ret.config.dict_db:
-            hs = _make_hybrid_searcher(ret.config.dict_db, ollama_url, embed_model)
+            hs = _make_hybrid_searcher(
+                ret.config.dict_db, ollama_url, embed_model,
+                alpha=args.alpha, tracer=tracer,
+            )
             if hs:
                 with hs:
                     dict_chunks = hs.search(question, limit=args.limit, version=version)
 
         if not args.dict_only and ret.config.plsql_db:
-            hs = _make_hybrid_searcher(ret.config.plsql_db, ollama_url, embed_model)
+            hs = _make_hybrid_searcher(
+                ret.config.plsql_db, ollama_url, embed_model,
+                alpha=args.alpha, tracer=tracer,
+            )
             if hs:
                 with hs:
                     plsql_chunks = hs.search(question, limit=args.limit, version=version)
@@ -408,6 +448,8 @@ def cmd_ask(args, ret):
         )
     else:
         print("[FTS5 keyword search]", file=sys.stderr)
+        if tracer:
+            tracer.step("ask: using FTS5 keyword search")
         result = ret.search(
             question, limit=args.limit, version=version,
             dict_only=args.dict_only, plsql_only=args.plsql_only,
@@ -415,6 +457,12 @@ def cmd_ask(args, ret):
 
     if result.total == 0:
         print("Warning: no documentation context found for this query.", file=sys.stderr)
+
+    if tracer:
+        tracer.step(
+            "ask: retrieval complete",
+            f"dict={len(result.dict_chunks)}  plsql={len(result.plsql_chunks)}  total={result.total}",
+        )
 
     # --include: force-add specific views/subprograms to context
     include_arg = getattr(args, "include", None) or ""
@@ -431,9 +479,17 @@ def cmd_ask(args, ret):
                     result.dict_chunks.append(chunk)
                 else:
                     result.plsql_chunks.append(chunk)
+        if tracer and include_names:
+            tracer.step("ask: --include chunks added", f"names={include_names}")
 
     context_md = result.to_markdown(compact=args.compact)
     prompt = _build_prompt(question, context_md, args.task)
+
+    if tracer:
+        tracer.step(
+            "ask: prompt built",
+            f"task={args.task}  prompt_chars={len(prompt)}  context_chunks={result.total}",
+        )
 
     if args.show_prompt:
         print("=== PROMPT ===", file=sys.stderr)
@@ -448,6 +504,7 @@ def cmd_ask(args, ret):
             gemini_cli=getattr(args, "gemini_cli", "gemini"),
             claude_cli=getattr(args, "claude_cli", "claude"),
             timeout=args.timeout,
+            tracer=tracer,
         )
     except ValueError as e:
         print(f"Backend error: {e}", file=sys.stderr)
@@ -456,15 +513,22 @@ def cmd_ask(args, ret):
     print(f"[{backend.name()}]", file=sys.stderr)
 
     try:
-        result = backend.generate(prompt)
+        gen_result = backend.generate(prompt)
     except (ConnectionError, RuntimeError, TimeoutError) as e:
         print(f"LLM error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(result.text)
+    print(gen_result.text)
 
     if not getattr(args, "no_stats", False):
-        print(f"\n--- {result.stats_line()} ---", file=sys.stderr)
+        print(f"\n--- {gen_result.stats_line()} ---", file=sys.stderr)
+
+    if tracer:
+        tracer.close(
+            f"backend={backend.name()}  "
+            f"in={gen_result.input_tokens}  out={gen_result.output_tokens}  "
+            f"elapsed={gen_result.elapsed_sec:.1f}s"
+        )
 
 
 def _build_prompt(question, context, task):
@@ -559,6 +623,10 @@ def build_parser():
                    help="Embedding batch size (default: 32)")
     p.add_argument("--force", action="store_true",
                    help="Re-embed chunks even if already embedded")
+    p.add_argument("--trace", action="store_true",
+                   help="Write step-level timing trace to a file")
+    p.add_argument("--trace-dir", metavar="DIR", default="./trace",
+                   help="Directory for trace files (default: ./trace)")
 
     # search
     p = sub.add_parser("search", parents=[shared],
@@ -647,6 +715,10 @@ def build_parser():
                    help="Suppress token count and timing stats printed after the response")
     p.add_argument("--alpha", type=float, default=0.6, metavar="F",
                    help="Vector weight in hybrid scoring: 1.0=pure vector, 0.0=pure FTS5 (default: 0.6)")
+    p.add_argument("--trace", action="store_true",
+                   help="Write step-level timing trace to a file")
+    p.add_argument("--trace-dir", metavar="DIR", default="./trace",
+                   help="Directory for trace files (default: ./trace)")
 
     return parser
 

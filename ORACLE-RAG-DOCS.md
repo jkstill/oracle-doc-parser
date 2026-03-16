@@ -16,8 +16,9 @@ A pipeline for converting local Oracle HTML documentation into a retrieval-augme
 10. [Python Library Reference](#python-library-reference)
 11. [LLM Backends](#llm-backends)
 12. [How Hybrid Search Works](#how-hybrid-search-works)
-13. [Output Formats](#output-formats)
-14. [Troubleshooting](#troubleshooting)
+13. [Tracing](#tracing)
+14. [Output Formats](#output-formats)
+15. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -117,6 +118,7 @@ doc-parser/
     ├── retriever.py             # Core retrieval library
     ├── embeddings.py            # Embedding generation and hybrid search
     ├── backends.py              # LLM backends (Ollama, Gemini CLI)
+    ├── tracer.py                # Step-level timing tracer
     └── cli.py                   # CLI entry point (source for oracle-rag)
 
 output/
@@ -378,6 +380,8 @@ The primary command. Retrieves relevant documentation via hybrid or FTS5 search 
 | `--show-prompt` | off | Print the full prompt (instruction + context) to stderr before sending to the LLM |
 | `--no-stats` | off | Suppress the token count and timing line printed after each response |
 | `--alpha F` | `0.6` | Weight of vector score in hybrid scoring. `1.0` = pure vector, `0.0` = pure FTS5 |
+| `--trace` | off | Write a step-level timing trace to a timestamped file |
+| `--trace-dir DIR` | `./trace` | Directory for trace files (created if absent) |
 
 Also accepts all shared options (`--limit`, `--compact`, `--format`, etc.).
 
@@ -569,6 +573,8 @@ Generate and store embedding vectors for all chunks in one or both databases. Mu
 | `--db` | `both` | Which database(s) to index: `dict`, `plsql`, or `both` |
 | `--batch-size N` | `32` | Number of chunks per embedding API call |
 | `--force` | off | Re-embed chunks even if already indexed |
+| `--trace` | off | Write a step-level timing trace to a timestamped file |
+| `--trace-dir DIR` | `./trace` | Directory for trace files (created if absent) |
 
 Does not require database configuration from `~/.oracle_rag.conf` — paths are resolved from the shared options (`--dict-db`, `--plsql-db`, or `--base-dir`).
 
@@ -805,6 +811,115 @@ When `ask` or `search` is called with `--ollama-url` and embeddings are present,
 **Why this works for Oracle documentation:** Natural language questions like "which sessions are waiting" do not share keywords with `V$SESSION_WAIT`, but the semantic embedding of the chunk text (which includes the description "displays one row for each active session that is currently waiting") is close to the query in vector space. FTS5 alone would miss this; vector search alone might miss exact view name matches. The hybrid combines both strengths.
 
 **Brute-force cosine similarity** is used rather than an approximate nearest-neighbour index. At 6,000 vectors of 1024 dimensions, a full scan completes in under 100ms, so a dedicated vector database is unnecessary.
+
+---
+
+## Tracing
+
+The `ask` and `embed` commands support a `--trace` option that records a step-by-step timing log of the entire RAG pipeline to a file. This is useful for profiling and identifying bottlenecks.
+
+### Enabling tracing
+
+```bash
+# Trace an ask command (writes to ./trace/trace_<timestamp>.txt)
+./oracle-rag ask \
+    --backend claude \
+    --ollama-url http://lestrade:11434 \
+    --trace \
+    "show segments larger than 1GB"
+
+# Write trace files to a custom directory
+./oracle-rag ask \
+    --backend ollama \
+    --ollama-url http://lestrade:11434 \
+    --model qwen2.5:14b \
+    --trace \
+    --trace-dir /tmp/rag-traces \
+    "show sessions waiting on I/O events"
+
+# Trace an embed run
+./oracle-rag embed \
+    --ollama-url http://lestrade:11434 \
+    --trace
+```
+
+When tracing is active, the path of the trace file is printed to stderr:
+
+```
+[trace: trace/trace_20260316_142501.txt]
+```
+
+### Trace file format
+
+Each trace file contains:
+- A header with start time and file path
+- One line per step showing cumulative elapsed time and step duration
+- Optional detail lines indented under each step
+- A footer with total elapsed time and a summary
+
+Example output:
+
+```
+Oracle RAG Trace
+Started : 2026-03-16T14:25:01.334210
+File    : trace/trace_20260316_142501.txt
+------------------------------------------------------------
+
+[   0.001s] ask: start  (step: 0.001s)
+             question=show sessions waiting on I/O events
+[   0.002s] ask: using hybrid vector+FTS5 search  (step: 0.001s)
+[   0.002s] embed_batch: start  (step: 0.000s)
+             model=mxbai-embed-large:latest  texts=1
+[   0.041s] embed_batch: complete  (step: 0.039s)
+             vectors=1  dims=1024
+[   0.041s] hybrid search: query embedded  (step: 0.039s)
+             dims=1024
+[   0.089s] hybrid search: vector search complete  (step: 0.048s)
+             candidates=2571
+[   0.091s] hybrid search: FTS5 search complete  (step: 0.002s)
+             candidates=5
+[   0.093s] hybrid search: complete  (step: 0.002s)
+             returned=5  db=.../data-dictionary/oracle_docs.db
+[   0.186s] ask: retrieval complete  (step: 0.093s)
+             dict=5  plsql=5  total=10
+[   0.187s] ask: prompt built  (step: 0.001s)
+             task=sql  prompt_chars=8423  context_chunks=10
+[   0.187s] claude-cli generate: start  (step: 0.000s)
+             cli=claude  model=default  prompt_chars=8423
+[  12.341s] claude-cli generate: complete  (step: 12.154s)
+             in=2105 (est)  out=312 (est)
+------------------------------------------------------------
+Ended   : 2026-03-16T14:25:13.675432
+Total   : 12.341s
+Summary : backend=claude-cli  in=2105  out=312  elapsed=12.2s
+```
+
+### What is traced
+
+| Component | Steps recorded |
+|-----------|---------------|
+| `ask` (bin/oracle-rag) | Start, search method chosen, retrieval complete, prompt built |
+| `embed` (bin/oracle-rag) | Connection check, per-database indexing complete |
+| `OracleRetriever.search` | Per-database FTS5 query time |
+| `OracleRetriever.lookup` | Time to find or not find a named object |
+| `HybridSearcher.search` | Query embedding, vector scan, FTS5 query, merge, total |
+| `EmbeddingClient.embed_batch` | Time per batch API call to Ollama |
+| `index_database` | Chunks loaded, time per embedding batch |
+| Each LLM backend | Start (model + prompt size) and completion (token counts + elapsed) |
+
+### Python API
+
+The `Tracer` class can be used independently in custom scripts:
+
+```python
+from oracle_rag.tracer import Tracer
+
+with Tracer("./trace") as t:
+    t.step("load model", "model=mxbai-embed-large:latest")
+    # ... do work ...
+    t.step("generate embeddings", f"chunks=100", elapsed=2.4)
+# Footer is written automatically on context manager exit
+```
 
 ---
 
