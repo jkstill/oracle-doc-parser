@@ -534,6 +534,10 @@ def build_parser():
                         help="Return name + description only; omit columns, parameters, and syntax")
     shared.add_argument("--limit", type=int, default=5, metavar="N",
                         help="Maximum results returned per database (default: 5)")
+    shared.add_argument("--trace", action="store_true",
+                        help="Enable tracing to output detailed step timing")
+    shared.add_argument("--trace-dir", metavar="DIR", default="./trace",
+                        help="Output directory for trace files (default: ./trace)")
 
     parser = argparse.ArgumentParser(
         prog="oracle-rag",
@@ -658,6 +662,10 @@ def build_parser():
 def main():
     parser = build_parser()
     args = parser.parse_args()
+
+    if getattr(args, "trace", False):
+        from oracle_rag.tracing import enable_tracing
+        enable_tracing(args.trace_dir)
 
     # Commands that don't need a database connection
     if args.command == "models":

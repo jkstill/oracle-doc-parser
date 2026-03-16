@@ -39,6 +39,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from oracle_rag.tracing import trace_step
+
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -456,20 +458,21 @@ class OracleRetriever:
         Returns:
             RetrievalResult with dict_chunks and plsql_chunks populated.
         """
-        fts_query = _build_fts_query(query)
-        result = RetrievalResult(query=query)
-
-        if not plsql_only and self._dict_con:
-            result.dict_chunks = self._fts_search(
-                self._dict_con, fts_query, limit, version=version
-            )
-
-        if not dict_only and self._plsql_con:
-            result.plsql_chunks = self._fts_search(
-                self._plsql_con, fts_query, limit, version=version
-            )
-
-        return result
+        with trace_step("retrieve_search", query=query, limit=limit, version=version):
+            fts_query = _build_fts_query(query)
+            result = RetrievalResult(query=query)
+    
+            if not plsql_only and self._dict_con:
+                result.dict_chunks = self._fts_search(
+                    self._dict_con, fts_query, limit, version=version
+                )
+    
+            if not dict_only and self._plsql_con:
+                result.plsql_chunks = self._fts_search(
+                    self._plsql_con, fts_query, limit, version=version
+                )
+    
+            return result
 
     def lookup(self, name: str) -> Optional[Chunk]:
         """
@@ -479,15 +482,16 @@ class OracleRetriever:
 
         Returns the first match found, or None.
         """
-        if self._dict_con:
-            chunk = self._exact_lookup(self._dict_con, name)
-            if chunk:
-                return chunk
-        if self._plsql_con:
-            chunk = self._exact_lookup(self._plsql_con, name)
-            if chunk:
-                return chunk
-        return None
+        with trace_step("retrieve_lookup", name=name):
+            if self._dict_con:
+                chunk = self._exact_lookup(self._dict_con, name)
+                if chunk:
+                    return chunk
+            if self._plsql_con:
+                chunk = self._exact_lookup(self._plsql_con, name)
+                if chunk:
+                    return chunk
+            return None
 
     def lookup_many(self, names: list[str]) -> list[Chunk]:
         """

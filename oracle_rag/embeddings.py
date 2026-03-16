@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Optional
 
 from oracle_rag.retriever import Chunk, _open_db, _row_to_chunk
+from oracle_rag.tracing import trace_step
 
 
 # ---------------------------------------------------------------------------
@@ -122,15 +123,16 @@ class EmbeddingClient:
 
         for attempt in range(self.retry):
             try:
-                req = urllib.request.Request(
-                    url,
-                    data=payload,
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                )
-                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                    data = json.loads(resp.read())
-                    return data["embeddings"]
+                with trace_step("generate_embeddings", model=self.model, batch_size=len(texts)):
+                    req = urllib.request.Request(
+                        url,
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                        data = json.loads(resp.read())
+                        return data["embeddings"]
             except urllib.error.URLError as e:
                 if attempt < self.retry - 1:
                     time.sleep(2 ** attempt)
@@ -351,56 +353,57 @@ class HybridSearcher:
         """
         Hybrid search: embed query, merge vector + FTS5 scores, return chunks.
         """
-        # Embed the query
-        query_vec = self.client.embed_one(query)
-
-        # Get scores from both sources
-        vec_scores  = dict(self._vector_search(query_vec, limit))
-        fts_scores  = dict(self._fts_search(query, limit))
-
-        # Union of all candidate chunk IDs
-        all_ids = set(vec_scores) | set(fts_scores)
-
-        # Compute hybrid score
-        hybrid = {}
-        for cid in all_ids:
-            vs = vec_scores.get(cid, 0.0)
-            fs = fts_scores.get(cid, 0.0)
-            hybrid[cid] = (self.alpha * vs) + ((1 - self.alpha) * fs)
-
-        # Sort by hybrid score descending
-        ranked = sorted(hybrid.items(), key=lambda x: x[1], reverse=True)
-
-        # Fetch the top chunks from DB
-        top_ids = [cid for cid, _ in ranked[:limit * 2]]
-        if not top_ids:
-            return []
-
-        placeholders = ",".join("?" * len(top_ids))
-        sql = f"SELECT * FROM chunks WHERE id IN ({placeholders})"
-        params = list(top_ids)
-
-        if version:
-            sql += " AND oracle_version = ?"
-            params.append(version)
-        if object_types:
-            ph2 = ",".join("?" * len(object_types))
-            sql += f" AND object_type IN ({ph2})"
-            params.extend(object_types)
-
-        rows = self._con.execute(sql, params).fetchall()
-        row_map = {r["id"]: r for r in rows}
-
-        # Return in ranked order, up to limit
-        result = []
-        for cid, score in ranked:
-            if cid in row_map:
-                chunk = _row_to_chunk(row_map[cid], score=score)
-                result.append(chunk)
-            if len(result) >= limit:
-                break
-
-        return result
+        with trace_step("hybrid_search", query=query, limit=limit):
+            # Embed the query
+            query_vec = self.client.embed_one(query)
+    
+            # Get scores from both sources
+            vec_scores  = dict(self._vector_search(query_vec, limit))
+            fts_scores  = dict(self._fts_search(query, limit))
+    
+            # Union of all candidate chunk IDs
+            all_ids = set(vec_scores) | set(fts_scores)
+    
+            # Compute hybrid score
+            hybrid = {}
+            for cid in all_ids:
+                vs = vec_scores.get(cid, 0.0)
+                fs = fts_scores.get(cid, 0.0)
+                hybrid[cid] = (self.alpha * vs) + ((1 - self.alpha) * fs)
+    
+            # Sort by hybrid score descending
+            ranked = sorted(hybrid.items(), key=lambda x: x[1], reverse=True)
+    
+            # Fetch the top chunks from DB
+            top_ids = [cid for cid, _ in ranked[:limit * 2]]
+            if not top_ids:
+                return []
+    
+            placeholders = ",".join("?" * len(top_ids))
+            sql = f"SELECT * FROM chunks WHERE id IN ({placeholders})"
+            params = list(top_ids)
+    
+            if version:
+                sql += " AND oracle_version = ?"
+                params.append(version)
+            if object_types:
+                ph2 = ",".join("?" * len(object_types))
+                sql += f" AND object_type IN ({ph2})"
+                params.extend(object_types)
+    
+            rows = self._con.execute(sql, params).fetchall()
+            row_map = {r["id"]: r for r in rows}
+    
+            # Return in ranked order, up to limit
+            result = []
+            for cid, score in ranked:
+                if cid in row_map:
+                    chunk = _row_to_chunk(row_map[cid], score=score)
+                    result.append(chunk)
+                if len(result) >= limit:
+                    break
+    
+            return result
 
     def coverage(self) -> dict:
         """Return embedding coverage stats."""

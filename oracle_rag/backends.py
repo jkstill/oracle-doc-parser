@@ -24,6 +24,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
 
+from oracle_rag.tracing import trace_step, log_trace
+
 
 # ---------------------------------------------------------------------------
 # Result dataclass — common across all backends
@@ -126,15 +128,16 @@ class OllamaBackend(LLMBackend):
             method="POST",
         )
         t0 = time.monotonic()
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                data = json.loads(resp.read())
-        except urllib.error.URLError as e:
-            raise ConnectionError(
-                f"Ollama request failed at {self.base_url}: {e}"
-            ) from e
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Unexpected response from Ollama: {e}") from e
+        with trace_step("llm_generate", backend="ollama", model=self.model):
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    data = json.loads(resp.read())
+            except urllib.error.URLError as e:
+                raise ConnectionError(
+                    f"Ollama request failed at {self.base_url}: {e}"
+                ) from e
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Unexpected response from Ollama: {e}") from e
 
         elapsed = time.monotonic() - t0
         text = data.get("response", "").strip()
@@ -188,21 +191,22 @@ class GeminiCLIBackend(LLMBackend):
             cmd += ["--model", self.model]
 
         t0 = time.monotonic()
-        try:
-            result = subprocess.run(
-                cmd,
-                input=prompt,
-                capture_output=True,
-                text=True,
-                timeout=self.timeout,
-            )
-        except FileNotFoundError:
-            raise RuntimeError(
-                f"Gemini CLI not found at '{self.cli_path}'. "
-                "Ensure it is installed and on PATH."
-            )
-        except subprocess.TimeoutExpired:
-            raise TimeoutError(f"Gemini CLI timed out after {self.timeout}s")
+        with trace_step("llm_generate", backend="gemini", model=self.model):
+            try:
+                result = subprocess.run(
+                    cmd,
+                    input=prompt,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.timeout,
+                )
+            except FileNotFoundError:
+                raise RuntimeError(
+                    f"Gemini CLI not found at '{self.cli_path}'. "
+                    "Ensure it is installed and on PATH."
+                )
+            except subprocess.TimeoutExpired:
+                raise TimeoutError(f"Gemini CLI timed out after {self.timeout}s")
 
         elapsed = time.monotonic() - t0
 
@@ -260,20 +264,21 @@ class ClaudeCLIBackend(LLMBackend):
             cmd += ["--model", self.model]
 
         t0 = time.monotonic()
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=self.timeout,
-            )
-        except FileNotFoundError:
-            raise RuntimeError(
-                f"Claude CLI not found at '{self.cli_path}'. "
-                "Install it from https://claude.ai/download or ensure it is on PATH."
-            )
-        except subprocess.TimeoutExpired:
-            raise TimeoutError(f"Claude CLI timed out after {self.timeout}s")
+        with trace_step("llm_generate", backend="claude-cli", model=self.model):
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.timeout,
+                )
+            except FileNotFoundError:
+                raise RuntimeError(
+                    f"Claude CLI not found at '{self.cli_path}'. "
+                    "Install it from https://claude.ai/download or ensure it is on PATH."
+                )
+            except subprocess.TimeoutExpired:
+                raise TimeoutError(f"Claude CLI timed out after {self.timeout}s")
 
         elapsed = time.monotonic() - t0
 
@@ -363,21 +368,22 @@ class ClaudeAPIBackend(LLMBackend):
             method="POST",
         )
         t0 = time.monotonic()
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                data = json.loads(resp.read())
-        except urllib.error.HTTPError as e:
-            body = e.read().decode("utf-8", errors="replace")
+        with trace_step("llm_generate", backend="claude-api", model=self.model):
             try:
-                err = json.loads(body)
-                msg = err.get("error", {}).get("message", body)
-            except json.JSONDecodeError:
-                msg = body
-            raise RuntimeError(f"Claude API error {e.code}: {msg}") from e
-        except urllib.error.URLError as e:
-            raise ConnectionError(f"Claude API request failed: {e}") from e
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Unexpected response from Claude API: {e}") from e
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    data = json.loads(resp.read())
+            except urllib.error.HTTPError as e:
+                body = e.read().decode("utf-8", errors="replace")
+                try:
+                    err = json.loads(body)
+                    msg = err.get("error", {}).get("message", body)
+                except json.JSONDecodeError:
+                    msg = body
+                raise RuntimeError(f"Claude API error {e.code}: {msg}") from e
+            except urllib.error.URLError as e:
+                raise ConnectionError(f"Claude API request failed: {e}") from e
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Unexpected response from Claude API: {e}") from e
 
         elapsed = time.monotonic() - t0
 

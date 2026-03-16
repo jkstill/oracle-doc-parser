@@ -18,6 +18,7 @@ A pipeline for converting local Oracle HTML documentation into a retrieval-augme
 12. [How Hybrid Search Works](#how-hybrid-search-works)
 13. [Output Formats](#output-formats)
 14. [Troubleshooting](#troubleshooting)
+15. [Tracing and Performance](#tracing-and-performance)
 
 ---
 
@@ -322,6 +323,8 @@ These options are available on every subcommand except `models` and `claude-mode
 | `--format` | `markdown` | Output format: `markdown` or `json` |
 | `--compact` | off | Return name + description only (no columns/parameters/syntax) |
 | `--limit N` | `5` | Maximum results returned per database |
+| `--trace` | off | Enable tracing to output detailed step timing to a file |
+| `--trace-dir DIR` | `./trace` | Output directory for trace files |
 
 ---
 
@@ -910,3 +913,27 @@ OLLAMA_HOST=0.0.0.0 ollama serve
 ```
 
 or add it to the Ollama systemd service environment.
+
+---
+
+## Tracing and Performance
+
+To identify bottlenecks in the RAG process (e.g., whether latency is coming from the local database, the embedding model, or the LLM generation), use the `--trace` flag.
+
+```bash
+./oracle-rag ask "how to gather stats" --trace
+```
+
+This generates a timestamped JSONL file in `./trace/` (or the directory specified by `--trace-dir`). Each file contains structured events with timing:
+
+- `tracing_started`: Initialization
+- `retrieve_search_start` / `end`: Local FTS5/SQLite search latency
+- `hybrid_search_start` / `end`: Query embedding and vector scoring latency
+- `generate_embeddings_start` / `end`: Ollama embedding API latency
+- `llm_generate_start` / `end`: Backend LLM generation latency (Ollama, Claude, or Gemini)
+
+You can inspect the latest trace file to see where time is being spent:
+
+```bash
+cat trace/rag_trace_*.jsonl | jq .
+```
