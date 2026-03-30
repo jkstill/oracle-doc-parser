@@ -39,10 +39,12 @@ class Tracer:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         self._path = self._dir / f"trace_{ts}.txt"
         self._t0 = time.monotonic()
+        self._t0_dt = datetime.now()
         self._last = self._t0
+        self._last_dt = self._t0_dt
         with open(self._path, "w") as fh:
             fh.write("Oracle RAG Trace\n")
-            fh.write(f"Started : {datetime.now().isoformat()}\n")
+            fh.write(f"Started : {self._t0_dt.isoformat()}\n")
             fh.write(f"File    : {self._path}\n")
             fh.write("-" * 60 + "\n\n")
 
@@ -66,23 +68,31 @@ class Tracer:
                      previous step() call (or __init__) is used.
         """
         now = time.monotonic()
+        end_dt = datetime.now()
         since_start = now - self._t0
         step_time = elapsed if elapsed is not None else (now - self._last)
+        elapsed_us = int(step_time * 1_000_000)
+        start_dt = self._last_dt
         self._last = now
+        self._last_dt = end_dt
 
         with open(self._path, "a") as fh:
-            fh.write(f"[{since_start:8.3f}s] {name}  (step: {step_time:.3f}s)\n")
+            fh.write(f"[{since_start:8.3f}s] {name}  (step: {step_time:.3f}s  {elapsed_us} us)\n")
+            fh.write(f"             start : {start_dt.isoformat()}\n")
+            fh.write(f"             end   : {end_dt.isoformat()}\n")
             if details:
                 for line in details.splitlines():
                     fh.write(f"             {line}\n")
 
     def close(self, summary: str = "") -> None:
         """Write footer with total elapsed time."""
+        end_dt = datetime.now()
         total = time.monotonic() - self._t0
+        total_us = int(total * 1_000_000)
         with open(self._path, "a") as fh:
             fh.write("\n" + "-" * 60 + "\n")
-            fh.write(f"Ended   : {datetime.now().isoformat()}\n")
-            fh.write(f"Total   : {total:.3f}s\n")
+            fh.write(f"Ended   : {end_dt.isoformat()}\n")
+            fh.write(f"Total   : {total:.3f}s  ({total_us} us)\n")
             if summary:
                 fh.write(f"Summary : {summary}\n")
 
