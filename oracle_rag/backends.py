@@ -90,7 +90,8 @@ class OllamaBackend(LLMBackend):
     Args:
         base_url: Ollama server URL, e.g. 'http://lestrade:11434'
         model:    Model name, e.g. 'qwen2.5:14b', 'llama3', 'mistral'
-        timeout:  Request timeout in seconds (default 120)
+        timeout:  Per-chunk read timeout in seconds (default 120); total
+                  response time is unbounded as long as chunks keep arriving
     """
 
     def __init__(self, base_url: str, model: str, timeout: int = 120):
@@ -116,7 +117,7 @@ class OllamaBackend(LLMBackend):
         payload = json.dumps({
             "model": self.model,
             "prompt": prompt,
-            "stream": False,
+            "stream": True,
         }).encode("utf-8")
 
         req = urllib.request.Request(
@@ -125,10 +126,20 @@ class OllamaBackend(LLMBackend):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
+        # Streaming: the timeout applies to each chunk read, not the whole
+        # response, so a slow model doesn't trip it — only a hung server does.
         t0 = time.monotonic()
+        parts: list[str] = []
+        data: dict = {}
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                data = json.loads(resp.read())
+                for line in resp:
+                    chunk = json.loads(line)
+                    if "error" in chunk:
+                        raise RuntimeError(f"Ollama error: {chunk['error']}")
+                    parts.append(chunk.get("response", ""))
+                    if chunk.get("done"):
+                        data = chunk
         except urllib.error.URLError as e:
             raise ConnectionError(
                 f"Ollama request failed at {self.base_url}: {e}"
@@ -137,7 +148,7 @@ class OllamaBackend(LLMBackend):
             raise ValueError(f"Unexpected response from Ollama: {e}") from e
 
         elapsed = time.monotonic() - t0
-        text = data.get("response", "").strip()
+        text = "".join(parts).strip()
 
         # Ollama returns exact token counts
         input_tokens  = data.get("prompt_eval_count", _estimate_tokens(prompt))
